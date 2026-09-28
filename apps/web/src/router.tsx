@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from './components/layout/AppShell';
 import { PublicOnly, RequireAuth, RequireStaff, RootRedirect } from './components/layout/guards';
+import { enableScreenTransitions } from './lib/transitions';
 import Join from './screens/auth/Join';
 import SignIn from './screens/auth/SignIn';
 import Welcome from './screens/auth/Welcome';
@@ -62,3 +63,5 @@ export const router = createBrowserRouter([
   },
   { path: '*', element: <NotFound /> },
 ]);
+
+enableScreenTransitions(router);

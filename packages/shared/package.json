@@ -1,6 +1,6 @@
 {
   "name": "@identity/shared",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Domain rules, API schemas and typed API client shared by the API, the web app and the future native app.",
   "type": "module",

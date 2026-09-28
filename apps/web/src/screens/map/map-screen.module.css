@@ -16,7 +16,7 @@
 
 .top {
   position: absolute;
-  top: max(56px, calc(var(--safe-top) + 12px));
+  top: calc(max(56px, calc(var(--safe-top) + 12px)) + var(--banner-space));
   right: var(--page-x);
   left: var(--page-x);
   z-index: 600;

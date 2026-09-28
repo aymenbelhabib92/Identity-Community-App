@@ -7,8 +7,9 @@ import {
   zonedParts,
 } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Book, Download, KeyRound, LogOut, MonitorSmartphone, Pencil, Share, Shield } from 'lucide-react';
+import { Book, Download, KeyRound, LogOut, MonitorSmartphone, Pencil, Shield } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { InstallHelpSheet } from '../../components/install/InstallHelpSheet';
 import { StatePill } from '../../components/StatePill';
 import {
   Avatar,
@@ -22,7 +23,6 @@ import {
   List,
   ListRow,
   Screen,
-  SectionFooter,
   SectionHeader,
   Sheet,
   useToast,
@@ -30,7 +30,7 @@ import {
 import { api } from '../../lib/api';
 import { useAuth, useCan, useUser } from '../../lib/auth';
 import { fieldErrors } from '../../lib/errors';
-import { isIos, isStandalone, useInstallPrompt } from '../../lib/install';
+import { useInstallStatus } from '../../lib/install';
 import { keys } from '../../lib/queries';
 import s from './misc.module.css';
 
@@ -45,17 +45,17 @@ export default function Profile() {
   const canViewMembers = useCan('members:view');
   const canReviewPayments = useCan('payments:review');
   const isStaffMember = canViewMembers || canReviewPayments;
-  const install = useInstallPrompt();
+  const install = useInstallStatus();
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [iosHint, setIosHint] = useState(false);
+  const [installHelp, setInstallHelp] = useState(false);
 
   const logoutEverywhere = useMutation({
     mutationFn: api.auth.logoutEverywhere,
     onSettled: signOut,
   });
 
-  const showInstall = !isStandalone() && (install !== null || isIos());
+  const showInstall = install.installed === false && install.installable;
 
   return (
     <Screen>
@@ -92,7 +92,7 @@ export default function Profile() {
             tile={{ icon: <Download />, color: 'green' }}
             title="Install the app"
             subtitle="Full screen, from your home screen"
-            onClick={() => (install ? void install() : setIosHint(true))}
+            onClick={() => (install.prompt ? void install.prompt() : setInstallHelp(true))}
             chevron
           />
         )}
@@ -112,13 +112,7 @@ export default function Profile() {
 
       <EditProfileSheet open={editing} onClose={() => setEditing(false)} />
       <PasswordSheet open={changingPassword} onClose={() => setChangingPassword(false)} />
-      <Sheet open={iosHint} onClose={() => setIosHint(false)} title="Install on iPhone">
-        <List>
-          <ListRow icon={<Share />} title="1. Tap Share in Safari" subtitle="The square with an arrow, at the bottom" />
-          <ListRow icon={<Download />} title="2. Add to Home Screen" subtitle="Scroll the menu if you don't see it" />
-        </List>
-        <SectionFooter>The app then opens full screen, like a native app.</SectionFooter>
-      </Sheet>
+      <InstallHelpSheet open={installHelp} onClose={() => setInstallHelp(false)} platform={install.platform} />
     </Screen>
   );
 }

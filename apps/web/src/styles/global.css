@@ -36,10 +36,17 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tabbar-height: calc(58px + var(--safe-bottom));
+  /* Extra room taken at the top by the install banner (0 when it is hidden). */
+  --banner-space: 0px;
   /* Room at the top of each screen: the status bar in the installed app, breathing space in a browser. */
-  --screen-top: max(58px, calc(var(--safe-top) + 14px));
+  --screen-top: calc(max(58px, calc(var(--safe-top) + 14px)) + var(--banner-space));
 
   --shards: url('/brand/shards.webp');
+}
+
+/* Set by InstallBanner while it is displayed. */
+:root[data-install-banner] {
+  --banner-space: 40px;
 }
 
 *,
@@ -142,6 +149,91 @@ svg {
   border: 0;
 }
 
+/* ─── Screen transitions (see lib/transitions.ts) ─────────────────────────────
+   The whole page is captured as "root"; the tab bar and the install banner are
+   captured apart so they stay still while screens slide under them. */
+
+:root {
+  --ios-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+
+:root[data-transition='push']::view-transition-old(root),
+:root[data-transition='push']::view-transition-new(root),
+:root[data-transition='pop']::view-transition-old(root),
+:root[data-transition='pop']::view-transition-new(root) {
+  mix-blend-mode: normal;
+  animation-duration: 420ms;
+  animation-timing-function: var(--ios-ease);
+  animation-fill-mode: both;
+}
+
+/* Push: the new screen comes from the right over the old one, which drifts left and darkens. */
+:root[data-transition='push']::view-transition-old(root) {
+  animation-name: screen-behind;
+}
+
+:root[data-transition='push']::view-transition-new(root) {
+  animation-name: screen-from-right;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Pop: the current screen leaves to the right, uncovering the previous one. */
+:root[data-transition='pop']::view-transition-old(root) {
+  z-index: 1;
+  animation-name: screen-to-right;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-transition='pop']::view-transition-new(root) {
+  animation-name: screen-from-behind;
+}
+
+:root[data-transition='tab']::view-transition-old(root),
+:root[data-transition='tab']::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+
+:root[data-transition='none']::view-transition-old(root),
+:root[data-transition='none']::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(tabbar),
+::view-transition-group(install-banner) {
+  animation: none;
+}
+
+@keyframes screen-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes screen-to-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes screen-behind {
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.6);
+  }
+}
+
+@keyframes screen-from-behind {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.6);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -149,5 +241,11 @@ svg {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

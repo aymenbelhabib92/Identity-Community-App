@@ -26,6 +26,10 @@ export default defineConfig(({ mode }) => {
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // Lists the PWA as its own related app, so the site can ask the browser
+        // (navigator.getInstalledRelatedApps) whether it is already installed.
+        related_applications: [{ platform: 'webapp', url: '/manifest.webmanifest' }],
+        prefer_related_applications: false,
       },
       workbox: {
         navigateFallback: '/index.html',

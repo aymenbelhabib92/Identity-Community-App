@@ -1,7 +1,7 @@
 {
   "name": "identity-community-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Identity Car Community — membership, map, meetups. Web app / PWA + API (native app later).",
   "workspaces": [
     "packages/*",

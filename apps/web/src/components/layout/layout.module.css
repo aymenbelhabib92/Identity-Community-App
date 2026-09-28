@@ -14,6 +14,8 @@
   background: rgba(22, 22, 24, 0.94);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
+  /* Stays in place while screens slide (global.css, screen transitions). */
+  view-transition-name: tabbar;
 }
 
 .tab {
