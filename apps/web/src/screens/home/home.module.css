@@ -1,0 +1,246 @@
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.greeting {
+  margin-bottom: 4px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.name {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 62px;
+  padding: 0 14px 0 20px;
+}
+
+.bannerLogo {
+  color: #fff;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.alertCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.alertBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.alertTitle {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.alertText {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.pendingSteps {
+  margin-top: 16px;
+}
+
+.meetupCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.meetupCard:active {
+  background: var(--surface-2);
+}
+
+.dateTile {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.weekday {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--red);
+}
+
+.day {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.meetupBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.meetupTitle {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.meetupMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.meetupMeta svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+.meetupMeta span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--text-3);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 106px;
+  padding: 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+.action:active {
+  background: var(--surface-2);
+}
+
+.actionLabel {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.adminCard {
+  margin-top: 12px;
+}
+
+.announcement {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 13px 16px 15px;
+  text-align: left;
+}
+
+.announcement + .announcement::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 16px;
+  height: 0.5px;
+  background: var(--separator);
+}
+
+button.announcement:active {
+  background: var(--surface-2);
+}
+
+.announcementHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.announcementAuthor {
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.announcementTime {
+  flex: none;
+  color: var(--text-2);
+}
+
+.announcementBody {
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.addButton {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--blue);
+}
+
+.addButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

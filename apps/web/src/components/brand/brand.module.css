@@ -1,0 +1,7 @@
+.shards {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--radius-card);
+  background: #09090b var(--shards) center / cover no-repeat;
+}

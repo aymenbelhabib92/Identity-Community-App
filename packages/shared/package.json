@@ -1,0 +1,20 @@
+{
+  "name": "@identity/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Domain rules, API schemas and typed API client shared by the API, the web app and the future native app.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.2"
+  }
+}

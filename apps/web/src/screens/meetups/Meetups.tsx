@@ -1,0 +1,61 @@
+import { CalendarDays, Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router';
+import { Card, EmptyState, ErrorState, LargeTitle, Loading, RoundButton, Screen, Segmented } from '../../components/ui';
+import { useCan } from '../../lib/auth';
+import { useMeetups } from '../../lib/queries';
+import { MeetupCard } from './MeetupCard';
+import s from './meetups.module.css';
+
+type Scope = 'upcoming' | 'past';
+
+export default function Meetups() {
+  const [params, setParams] = useSearchParams();
+  const scope: Scope = params.get('scope') === 'past' ? 'past' : 'upcoming';
+  const canCreate = useCan('meetups:create');
+  const { data, isPending, error, refetch } = useMeetups(scope);
+
+  return (
+    <Screen>
+      <LargeTitle
+        accessory={
+          canCreate && (
+            <RoundButton label="New meetup" to="/meetups/new">
+              <Plus aria-hidden color="var(--blue)" strokeWidth={2.4} />
+            </RoundButton>
+          )
+        }
+      >
+        Meetups
+      </LargeTitle>
+
+      <Segmented
+        className={s.segmented}
+        label="Meetups"
+        value={scope}
+        onChange={(value) => setParams(value === 'past' ? { scope: 'past' } : {}, { replace: true })}
+        options={[
+          { value: 'upcoming', label: 'Upcoming' },
+          { value: 'past', label: 'Past' },
+        ]}
+      />
+
+      {isPending ? (
+        <Loading />
+      ) : error ? (
+        <ErrorState error={error} onRetry={() => void refetch()} />
+      ) : data.items.length === 0 ? (
+        <Card>
+          <EmptyState icon={<CalendarDays />} title={scope === 'upcoming' ? 'Nothing planned yet' : 'No past meetups'}>
+            {scope === 'upcoming' ? 'You will be notified when the organizers plan a meetup.' : null}
+          </EmptyState>
+        </Card>
+      ) : (
+        <div className={s.list}>
+          {data.items.map((meetup) => (
+            <MeetupCard key={meetup.id} meetup={meetup} />
+          ))}
+        </div>
+      )}
+    </Screen>
+  );
+}

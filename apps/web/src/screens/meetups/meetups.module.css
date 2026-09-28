@@ -1,0 +1,258 @@
+.segmented {
+  margin-bottom: 14px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  display: block;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+.card:active {
+  background: var(--surface-2);
+}
+
+.cancelled .title {
+  text-decoration: line-through;
+  color: var(--text-2);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+}
+
+.when {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.text {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.place svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.going {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.going svg {
+  width: 15px;
+  height: 15px;
+}
+
+.rsvp {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.rsvpDone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.rsvpDone svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ─── Detail ─────────────────────────────────────────────────────────────── */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 152px;
+  padding: 16px;
+  text-align: center;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.heroIcon {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.heroTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.heroText {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mapHero {
+  position: relative;
+  height: 172px;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.mapChip {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(28, 28, 30, 0.92);
+  backdrop-filter: blur(10px);
+  font-size: 15px;
+}
+
+.mapChip span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mapChip a {
+  flex: none;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.detailTitle {
+  margin-top: 22px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.host {
+  margin: 6px 0 18px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.body {
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.attendee {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── Form ───────────────────────────────────────────────────────────────── */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formSection {
+  margin: 12px 16px -6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.help {
+  margin: -6px 16px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
