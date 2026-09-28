@@ -37,7 +37,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tabbar-height: calc(58px + var(--safe-bottom));
   /* Room at the top of each screen: the status bar in the installed app, breathing space in a browser. */
-  --screen-top: max(44px, calc(var(--safe-top) + 14px));
+  --screen-top: max(58px, calc(var(--safe-top) + 14px));
 
   --shards: url('/brand/shards.webp');
 }

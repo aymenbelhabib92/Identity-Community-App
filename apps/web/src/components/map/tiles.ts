@@ -1,13 +1,14 @@
 /**
- * Base map. CARTO's dark basemap (OpenStreetMap data) needs no API key; swap it
- * with VITE_MAP_TILE_URL, or replace Leaflet by Google Maps here if the club
- * goes with Google.
+ * Base map. Stadia Maps' "Alidade Smooth Dark" (OpenStreetMap data) matches the
+ * app's look. It works without a key on localhost; in production, register the
+ * domain on stadiamaps.com (free tier) or point VITE_MAP_TILE_URL elsewhere.
+ * Switching to Google Maps later means replacing Leaflet in this folder.
  */
 export const TILE_URL =
-  import.meta.env.VITE_MAP_TILE_URL || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  import.meta.env.VITE_MAP_TILE_URL || 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png';
 
 export const TILE_ATTRIBUTION =
   import.meta.env.VITE_MAP_ATTRIBUTION ||
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 export const MAX_ZOOM = 18;

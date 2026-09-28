@@ -15,8 +15,6 @@ export interface Config {
   tokenTtl: string;
   /** Club time zone: dues periods and "today" are computed in it. */
   timezone: string;
-  /** Public URL of the web app, used in pass QR codes. */
-  publicUrl: string;
   corsOrigins: string[];
   trustProxy: boolean;
   logLevel: string;
@@ -57,7 +55,6 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     jwtSecret,
     tokenTtl: env.TOKEN_TTL || '30d',
     timezone: env.TZ || 'Africa/Tunis',
-    publicUrl: (env.PUBLIC_URL || 'http://localhost:5173').replace(/\/$/, ''),
     corsOrigins: (env.CORS_ORIGINS || '')
       .split(',')
       .map((origin) => origin.trim())

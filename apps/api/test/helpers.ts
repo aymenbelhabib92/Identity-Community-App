@@ -18,15 +18,30 @@ export interface TestContext {
   close(): Promise<void>;
 }
 
+/**
+ * With TEST_DATABASE_URL set, tests run against that PostgreSQL server instead
+ * (wiped before each test file — run with --no-file-parallelism).
+ */
+const testDatabaseUrl = process.env.TEST_DATABASE_URL || null;
+
+async function wipeDatabase(url: string): Promise<void> {
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: url });
+  await client.connect();
+  await client.query('drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;');
+  await client.end();
+}
+
 /** A fresh API on an in-memory Postgres (PGlite), with a controllable clock. */
 export async function createTestApp(now = new Date('2026-09-28T16:00:00Z')): Promise<TestContext> {
   const clock = { current: now };
   const uploadDir = await mkdtemp(path.join(os.tmpdir(), 'identity-test-'));
+  if (testDatabaseUrl) await wipeDatabase(testDatabaseUrl);
   const app = await buildApp({
     config: {
       env: 'test',
       logLevel: 'silent',
-      databaseUrl: null,
+      databaseUrl: testDatabaseUrl,
       pgliteDir: null,
       uploadDir,
       migrationsDir: path.resolve('drizzle'),

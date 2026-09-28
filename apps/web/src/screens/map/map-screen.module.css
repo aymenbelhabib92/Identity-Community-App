@@ -1,0 +1,212 @@
+.screen {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.mapArea {
+  position: absolute;
+  inset: 0 0 var(--tabbar-height);
+}
+
+/* Keep the attribution clear of the bottom card. */
+.mapArea :global(.leaflet-bottom) {
+  bottom: var(--card-height, 150px);
+}
+
+.top {
+  position: absolute;
+  top: max(56px, calc(var(--safe-top) + 12px));
+  right: var(--page-x);
+  left: var(--page-x);
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(44, 44, 46, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--text-2);
+}
+
+.search svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  font-size: 17px;
+  color: var(--text);
+}
+
+.search input::placeholder {
+  color: var(--text-2);
+}
+
+.clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #636366;
+  color: #1c1c1e;
+}
+
+.clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.segmented {
+  background: rgba(28, 28, 30, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.results {
+  max-height: 46dvh;
+  overflow-y: auto;
+  border-radius: 14px;
+  background: rgba(28, 28, 30, 0.97);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.resultsTitle {
+  padding: 10px 16px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.resultsEmpty {
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.bottom {
+  position: absolute;
+  right: 12px;
+  bottom: calc(var(--tabbar-height) + 12px);
+  left: 12px;
+  z-index: 600;
+}
+
+.card {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(28, 28, 30, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.shareRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shareText {
+  flex: 1;
+  min-width: 0;
+}
+
+.shareTitle {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.shareSub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.shareError {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--orange);
+}
+
+.shareFoot {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 0.5px solid var(--separator);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.shareFoot svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+}
+
+.lockedText {
+  margin: 4px 0 14px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.recenter {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(28, 28, 30, 0.94);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  color: var(--blue);
+}
+
+.recenter svg {
+  width: 20px;
+  height: 20px;
+}
+
+.memberHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.memberName {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.memberRole {
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--text-2);
+}

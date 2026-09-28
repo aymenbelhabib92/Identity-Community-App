@@ -5,8 +5,16 @@ import { cx } from '../../lib/cx';
 import { IconTile, type TileColor } from './controls';
 import s from './ui.module.css';
 
-export function List({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cx(s.card, className)}>{children}</section>;
+export function List({
+  children,
+  className,
+  separators = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  separators?: boolean;
+}) {
+  return <section className={cx(s.card, !separators && s.noSeparators, className)}>{children}</section>;
 }
 
 export interface ListRowProps {
@@ -18,6 +26,8 @@ export interface ListRowProps {
   icon?: ReactNode;
   /** Coloured square icon (settings-style rows). */
   tile?: { icon: ReactNode; color: TileColor };
+  /** Anything else on the left, e.g. an avatar. */
+  leading?: ReactNode;
   trailing?: ReactNode;
   to?: string;
   href?: string;
@@ -34,6 +44,7 @@ export function ListRow({
   valueClassName,
   icon,
   tile,
+  leading,
   trailing,
   to,
   href,
@@ -44,8 +55,9 @@ export function ListRow({
   const interactive = Boolean(to || href || onClick);
   const className = cx(
     s.row,
-    icon && s.rowWithIcon,
-    tile && s.rowWithTile,
+    icon != null && s.rowWithIcon,
+    tile !== undefined && s.rowWithTile,
+    leading != null && s.rowWithLeading,
     interactive && s.interactive,
     destructive && s.destructive,
   );
@@ -57,6 +69,7 @@ export function ListRow({
         </span>
       )}
       {tile && <IconTile color={tile.color}>{tile.icon}</IconTile>}
+      {leading}
       <span className={s.rowBody}>
         <span className={s.rowTitle} style={{ display: 'block' }}>
           {title}

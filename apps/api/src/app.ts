@@ -43,7 +43,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         : config.env === 'development'
           ? {
               level: config.logLevel,
-              transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname' } },
+              transport: {
+                target: 'pino-pretty',
+                options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname,reqId,req.hostname,req.remoteAddress,req.remotePort', singleLine: true },
+              },
             }
           : { level: config.logLevel },
     trustProxy: config.trustProxy,

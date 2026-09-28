@@ -1,0 +1,230 @@
+.pass {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 218px;
+  padding: 20px 20px 18px;
+  border-radius: 20px;
+}
+
+.pass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.passTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.passLogo {
+  color: #fff;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.qrButton {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.qrButton svg {
+  width: 32px;
+  height: 32px;
+}
+
+.passName {
+  margin-top: 28px;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.passFields {
+  display: flex;
+  gap: 24px;
+  margin: 10px 0 0;
+}
+
+.passFields dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(235, 235, 245, 0.62);
+}
+
+.passFields dd {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.payAction {
+  margin-top: 16px;
+}
+
+.qrBox {
+  display: grid;
+  place-items: center;
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  margin: 4px auto 16px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.qrBox img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.qrBox :global(span) {
+  color: #000;
+}
+
+.qrName {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.qrMeta {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.qrHint {
+  margin: 16px 8px 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.sheetStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.proofImage {
+  display: block;
+  width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+/* ─── Payment screen ─────────────────────────────────────────────────────── */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section {
+  margin: 12px 16px -6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+  color: var(--blue);
+}
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 132px;
+  padding: 18px;
+  border: 1.5px dashed #48484a;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--blue);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.upload svg {
+  width: 28px;
+  height: 28px;
+}
+
+.uploadHint {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.chosen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.thumb {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chosenName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chosenSize {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.instructions {
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-line;
+  color: var(--text);
+}

@@ -114,12 +114,20 @@
   background: var(--separator);
 }
 
+.noSeparators .row + .row::before {
+  display: none;
+}
+
 .rowWithIcon {
   --inset: 50px;
 }
 
 .rowWithTile {
   --inset: 58px;
+}
+
+.rowWithLeading {
+  --inset: 64px;
 }
 
 .interactive {
@@ -714,10 +722,11 @@ select.formInput option {
 
 /* ─── Toast ───────────────────────────────────────────────────────────────── */
 
+/* Top of the screen, where it never hides the primary action. */
 .toastHost {
   position: fixed;
+  top: calc(var(--safe-top) + 12px);
   right: 0;
-  bottom: calc(var(--tabbar-height) + 14px);
   left: 0;
   z-index: 1100;
   display: flex;
@@ -769,6 +778,6 @@ select.formInput option {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(-12px);
   }
 }

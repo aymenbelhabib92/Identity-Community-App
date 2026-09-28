@@ -4,6 +4,7 @@
   "private": true,
   "description": "Domain rules, API schemas and typed API client shared by the API, the web app and the future native app.",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },

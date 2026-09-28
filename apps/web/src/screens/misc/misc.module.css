@@ -1,0 +1,164 @@
+.rules {
+  display: flex;
+  flex-direction: column;
+}
+
+.paragraph {
+  margin: 12px 4px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.bullet {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.notification {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  text-align: left;
+}
+
+.notification + .notification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 58px;
+  height: 0.5px;
+  background: var(--separator);
+}
+
+button.notification:active {
+  background: var(--surface-2);
+}
+
+.notificationBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notificationTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.unread .notificationTitle::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  vertical-align: middle;
+}
+
+.notificationTime {
+  flex: none;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.notificationText {
+  margin-top: 3px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.profileHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+  text-align: center;
+}
+
+.profileName {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.profileMeta {
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.version {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 20px;
+  text-align: center;
+}
+
+.verdictIcon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.verdictIcon svg {
+  width: 38px;
+  height: 38px;
+}
+
+.valid {
+  background: var(--tint-green);
+  color: var(--green);
+}
+
+.invalid {
+  background: var(--tint-red);
+  color: var(--red);
+}
+
+.verdictTitle {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.verdictText {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-top: 80px;
+  text-align: center;
+}

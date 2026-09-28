@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
         runtimeCaching: [
           {
             // Map tiles: keep what was seen so the map still draws with a weak connection.
-            urlPattern: ({ url }) => url.hostname.endsWith('basemaps.cartocdn.com'),
+            urlPattern: ({ url }) => url.hostname === 'tiles.stadiamaps.com',
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
@@ -53,6 +53,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins,
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.1.0'),
+    },
     server: {
       port: 5173,
       proxy: {

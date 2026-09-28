@@ -146,7 +146,10 @@ const icons = [
   ['apps/web/public/icons/favicon-32.png', 32, { logoRatio: 0.92, radius: 6, texture: false }],
 ];
 for (const [file, size, options] of icons) {
-  await sharp(Buffer.from(iconSvg(size, options))).png().toFile(out(file));
+  // Palette PNGs: the icons are nearly monochrome, so 256 colours are plenty and the files stay small.
+  await sharp(Buffer.from(iconSvg(size, options)))
+    .png({ palette: true, quality: 90, effort: 10, compressionLevel: 9 })
+    .toFile(out(file));
 }
 writeFileSync(
   out('apps/web/public/icons/favicon.svg'),

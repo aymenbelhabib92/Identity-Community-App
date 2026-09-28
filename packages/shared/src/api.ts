@@ -5,6 +5,16 @@
  * added without breaking clients.
  */
 import { z } from 'zod';
+import {
+  ANNOUNCEMENT_AUDIENCES,
+  LOCATION_STATUSES,
+  MEETUP_STATUSES,
+  MEETUP_VISIBILITIES,
+  MEMBER_FILTERS,
+  PAYMENT_KINDS,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+} from './constants';
 import { MEMBER_STATUSES, MEMBERSHIP_STATES } from './membership';
 import { PERMISSIONS, ROLES, type Permission } from './roles';
 
@@ -102,13 +112,6 @@ export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>;
 
 // ─── Membership & payments ───────────────────────────────────────────────────
 
-export const PAYMENT_KINDS = ['entry_fee', 'dues'] as const;
-export type PaymentKind = (typeof PAYMENT_KINDS)[number];
-export const PAYMENT_METHODS = ['proof', 'in_person'] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
-export const PAYMENT_STATUSES = ['pending', 'verified', 'rejected'] as const;
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
-
 export const paymentSchema = z.object({
   id: idSchema,
   kind: z.enum(PAYMENT_KINDS),
@@ -165,9 +168,6 @@ export const paymentFormSchema = z.object({
 });
 export type PaymentForm = z.infer<typeof paymentFormSchema>;
 
-export const PROOF_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'] as const;
-export const PROOF_MAX_BYTES = 8 * 1024 * 1024;
-
 // ─── Admin ───────────────────────────────────────────────────────────────────
 
 export const memberSummarySchema = z.object({
@@ -201,9 +201,6 @@ export const recordPaymentBodySchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type RecordPaymentBody = z.infer<typeof recordPaymentBodySchema>;
-
-export const MEMBER_FILTERS = ['all', 'pending', 'active', 'due', 'expired', 'suspended', 'staff'] as const;
-export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 
 export const adminMembersQuerySchema = z.object({
   q: z.string().trim().max(80).optional(),
@@ -241,36 +238,6 @@ export const adminOverviewSchema = z.object({
 export type AdminOverview = z.infer<typeof adminOverviewSchema>;
 
 // ─── Meetups ─────────────────────────────────────────────────────────────────
-
-export const MEETUP_VISIBILITIES = ['public', 'secret', 'staff'] as const;
-export type MeetupVisibility = (typeof MEETUP_VISIBILITIES)[number];
-
-export const MEETUP_VISIBILITY_LABELS: Record<MeetupVisibility, string> = {
-  public: 'Public',
-  secret: 'Secret',
-  staff: 'Organizers',
-};
-
-export const MEETUP_AUDIENCE_LABELS: Record<MeetupVisibility, string> = {
-  public: 'Everyone',
-  secret: 'Active members',
-  staff: 'Organizers & staff',
-};
-
-/**
- * - visible:       the meeting point is shown
- * - locked:        secret meetup, before the reveal time
- * - rsvp_required: secret meetup after the reveal time, but this member has not confirmed
- * - not_set:       no meeting point yet
- */
-export const LOCATION_STATUSES = ['visible', 'locked', 'rsvp_required', 'not_set'] as const;
-export type LocationStatus = (typeof LOCATION_STATUSES)[number];
-
-export const MEETUP_STATUSES = ['upcoming', 'ongoing', 'past', 'cancelled'] as const;
-export type MeetupStatus = (typeof MEETUP_STATUSES)[number];
-
-/** A meetup counts as ongoing (still listed as upcoming) for this long after it starts. */
-export const MEETUP_ONGOING_HOURS = 6;
 
 export const meetupLocationSchema = z.object({
   name: z.string().nullable(),
@@ -361,9 +328,6 @@ export type Attendee = z.infer<typeof attendeeSchema>;
 export const attendeeListSchema = items(attendeeSchema);
 
 // ─── Announcements ───────────────────────────────────────────────────────────
-
-export const ANNOUNCEMENT_AUDIENCES = ['all', 'staff'] as const;
-export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
 
 export const announcementSchema = z.object({
   id: idSchema,

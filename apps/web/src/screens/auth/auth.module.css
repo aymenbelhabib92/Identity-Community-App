@@ -1,23 +1,27 @@
 .welcome {
+  position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   min-height: 100dvh;
   padding: 0 24px calc(64px + var(--safe-bottom));
 }
 
+/* Centred on the whole screen, like a launch screen. */
 .brand {
-  flex: 1;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 26px;
-  padding-top: 48px;
+  gap: 30px;
+  transform: translateY(-50%);
 }
 
 .tagline {
   font-size: 13px;
-  font-weight: 500;
   letter-spacing: 3.6px;
   text-transform: uppercase;
   color: var(--text-2);

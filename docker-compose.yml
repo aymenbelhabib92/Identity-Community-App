@@ -1,0 +1,69 @@
+# Production stack: PostgreSQL + API + web (Caddy, automatic HTTPS).
+#   cp .env.example .env   # then fill it in
+#   docker compose up -d --build
+name: identity
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: identity
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U identity -d identity']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://identity:${POSTGRES_PASSWORD}@db:5432/identity
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      TRUST_PROXY: 'true'
+      TZ: ${TZ:-Africa/Tunis}
+      ADMIN_PHONE: ${ADMIN_PHONE:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Club Admin}
+      GEOCODER_EMAIL: ${GEOCODER_EMAIL:-}
+    volumes:
+      - uploads:/data/uploads
+    expose:
+      - '3000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_MAP_TILE_URL: ${VITE_MAP_TILE_URL:-}
+        VITE_MAP_ATTRIBUTION: ${VITE_MAP_ATTRIBUTION:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      MAP_TILE_ORIGIN: ${MAP_TILE_ORIGIN:-https://tiles.stadiamaps.com}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:
