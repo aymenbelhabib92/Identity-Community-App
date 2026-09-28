@@ -120,6 +120,9 @@ cp .env.example .env    # domain, POSTGRES_PASSWORD, JWT_SECRET, first admin pho
 docker compose up -d --build
 ```
 
+- If the build fails with npm `ETIMEDOUT` (build containers without internet access on some
+  VPSes), use `sh scripts/deploy.sh` instead: it builds the images on the server's own network,
+  then starts the stack. It is also the command to run after each `git pull`.
 - Point the domain's DNS to the server first: Caddy then obtains the HTTPS certificate by itself.
 - The first admin (`ADMIN_PHONE` / `ADMIN_PASSWORD`) is created on first start.
 - Demo data (optional): `docker compose exec api node dist/db/seed.js --force`.

@@ -1,6 +1,7 @@
 # Production stack: PostgreSQL + API + web (Caddy, automatic HTTPS).
 #   cp .env.example .env   # then fill it in
 #   docker compose up -d --build
+# If npm times out during the build (no internet in build containers): sh scripts/deploy.sh
 name: identity
 
 services:
