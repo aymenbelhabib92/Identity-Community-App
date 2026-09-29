@@ -1,7 +1,6 @@
 # Production stack: PostgreSQL + API + web (Caddy, automatic HTTPS).
 #   cp .env.example .env   # then fill it in
 #   docker compose up -d --build
-# If npm times out during the build (no internet in build containers): sh scripts/deploy.sh
 name: identity
 
 services:
@@ -56,9 +55,9 @@ services:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       MAP_TILE_ORIGIN: ${MAP_TILE_ORIGIN:-https://tiles.stadiamaps.com}
     ports:
-      - '8080:80'
-      - '10443:443'
-      - '10443:443/udp'
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
     volumes:
       - caddy_data:/data
       - caddy_config:/config
