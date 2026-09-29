@@ -1,6 +1,17 @@
 # One domain serves the web app and the API (/api/*). Caddy gets and renews the
 # HTTPS certificate on its own — PWAs, geolocation and the camera need HTTPS.
-# SITE_ADDRESS: your domain (e.g. club.example.com), or "localhost" to try locally.
+# SITE_ADDRESS: your domain (e.g. club.example.com), "localhost" to try locally, or ":80"
+# behind another reverse proxy that handles HTTPS (docker-compose.proxy.yml).
+
+# TRUSTED_PROXIES: the reverse proxy in front of Caddy, if any ("private_ranges" for a proxy
+# on the Docker network): the visitor's IP is then read from its X-Forwarded-For header.
+# Otherwise no one is trusted and the visitor's IP is the connection's.
+{
+	servers {
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+		trusted_proxies_strict
+	}
+}
 
 {$SITE_ADDRESS:localhost} {
 	encode zstd gzip
@@ -14,7 +25,10 @@
 	}
 
 	handle /api/* {
-		reverse_proxy api:3000
+		# A single, verified visitor IP: the API trusts X-Forwarded-For (rate limits).
+		reverse_proxy api:3000 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	handle {

@@ -56,9 +56,9 @@ services:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       MAP_TILE_ORIGIN: ${MAP_TILE_ORIGIN:-https://tiles.stadiamaps.com}
     ports:
-      - '80:80'
-      - '443:443'
-      - '443:443/udp'
+      - '8080:80'
+      - '10443:443'
+      - '10443:443/udp'
     volumes:
       - caddy_data:/data
       - caddy_config:/config
