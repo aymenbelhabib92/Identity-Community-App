@@ -1,9 +1,11 @@
+import { t } from '@identity/shared';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useInstallStatus } from '../../lib/install';
 import { InstallHelpSheet } from './InstallHelpSheet';
 import s from './install.module.css';
 
+// English source texts, translated when displayed.
 const SUBTITLE = {
   ios: 'Add it to your Home Screen',
   android: 'Full screen, from your home screen',
@@ -42,16 +44,16 @@ export function InstallBanner() {
     <>
       {visible && (
         <div className={s.host}>
-          <section className={s.banner} aria-label="Install the Identity app">
+          <section className={s.banner} aria-label={t('Install the Identity app')}>
             <img className={s.icon} src="/icons/icon-192.png" alt="" width={44} height={44} />
             <div className={s.text}>
-              <p className={s.title}>Install Identity</p>
-              <p className={s.subtitle}>{prompt ? SUBTITLE.other : SUBTITLE[platform]}</p>
+              <p className={s.title}>{t('Install Identity')}</p>
+              <p className={s.subtitle}>{t(prompt ? SUBTITLE.other : SUBTITLE[platform])}</p>
             </div>
             <button type="button" className={s.install} onClick={() => void install()}>
-              Install
+              {t('Install')}
             </button>
-            <button type="button" className={s.close} onClick={() => setDismissed(true)} aria-label="Close">
+            <button type="button" className={s.close} onClick={() => setDismissed(true)} aria-label={t('Close')}>
               <X aria-hidden strokeWidth={2.6} />
             </button>
           </section>

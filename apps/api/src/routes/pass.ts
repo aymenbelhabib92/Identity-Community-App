@@ -1,4 +1,10 @@
-import { passTokenSchema, passVerificationSchema, passVerifyBodySchema, type MembershipState } from '@identity/shared';
+import {
+  passTokenSchema,
+  passVerificationSchema,
+  passVerifyBodySchema,
+  translate,
+  type MembershipState,
+} from '@identity/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { conflict } from '../errors';
 import { requirePermission } from '../plugins/auth';
@@ -55,6 +61,7 @@ export const passRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const { viewer } = request;
+      const tr = (text: string) => translate(viewer.lang, text);
       let payload: AccessTokenPayload | PassTokenPayload;
       try {
         payload = app.jwt.verify<AccessTokenPayload | PassTokenPayload>(request.body.token);
@@ -63,27 +70,30 @@ export const passRoutes: FastifyPluginAsyncZod = async (app) => {
         const expired = code.includes('EXPIRED');
         return {
           valid: false,
-          reason: expired
-            ? 'This code has expired. Ask the member to open their pass again.'
-            : 'This is not a valid Identity pass.',
+          reason: tr(
+            expired ? 'This code has expired. Ask the member to open their pass again.' : 'This is not a valid Identity pass.',
+          ),
           member: null,
         };
       }
       const user = payload.typ === 'pass' ? await findUser(app.db, payload.sub) : undefined;
-      if (!user) return { valid: false, reason: 'This is not a valid Identity pass.', member: null };
+      if (!user) return { valid: false, reason: tr('This is not a valid Identity pass.'), member: null };
 
       const { state, hasAccess } = stateOf(user, viewer.settings, viewer.today);
+      const warning = state === 'due' ? tr('Dues are due: remind them to pay.') : null;
       return {
         valid: hasAccess,
-        reason: hasAccess ? (state === 'due' ? 'Dues are due: remind them to pay.' : null) : (REFUSAL[state] ?? 'Not active.'),
+        reason: hasAccess ? warning : tr(REFUSAL[state] ?? 'Not active.'),
         member: {
           id: user.id,
           fullName: user.fullName,
           role: user.role,
+          avatar: user.avatarPhotoId,
           badgeNumber: user.badgeNumber,
           state,
           paidUntil: user.paidUntil,
           car: user.car,
+          carPhotos: user.carPhotoIds,
         },
       };
     },

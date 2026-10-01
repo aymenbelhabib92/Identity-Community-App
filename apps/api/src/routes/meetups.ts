@@ -9,6 +9,7 @@ import {
   meetupListSchema,
   meetupSchema,
   meetupUpdateSchema,
+  type Language,
 } from '@identity/shared';
 import { and, asc, desc, eq, gte, lt } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -25,7 +26,7 @@ import {
   visibleToViewer,
 } from '../services/meetups';
 import { notify } from '../services/notifications';
-import { audienceIds } from '../services/users';
+import { audienceIds, memberRefColumns, toMemberRef } from '../services/users';
 import type { Viewer } from '../types';
 
 const HOUR = 3_600_000;
@@ -43,7 +44,8 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
     return rows.map((row) => row.userId);
   }
 
-  const when = (row: Pick<MeetupRow, 'startsAt'>) => formatDayDateTime(row.startsAt, app.config.timezone);
+  const when = (row: Pick<MeetupRow, 'startsAt'>, lang: Language) =>
+    formatDayDateTime(row.startsAt, app.config.timezone, lang);
 
   app.get(
     '/meetups',
@@ -115,16 +117,20 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .returning();
 
-      const recipients = await audienceIds(app.db, viewer.settings, viewer.today, audienceFor(row!.visibility), viewer.id);
-      await notify(app.db, recipients, {
+      const meetup = row!;
+      const recipients = await audienceIds(app.db, viewer.settings, viewer.today, audienceFor(meetup.visibility), viewer.id);
+      await notify(app.db, recipients, (tr, lang) => ({
         kind: 'meetup',
-        title: `New meetup: ${row!.title}`,
-        body: row!.visibility === 'secret' ? `${when(row!)} · meeting point revealed ${row!.revealHoursBefore}h before` : when(row!),
-        link: `/meetups/${row!.id}`,
-      });
+        title: tr('New meetup: {title}', { title: meetup.title }),
+        body:
+          meetup.visibility === 'secret'
+            ? tr('{when} · meeting point revealed {hours}h before', { when: when(meetup, lang), hours: meetup.revealHoursBefore })
+            : when(meetup, lang),
+        link: `/meetups/${meetup.id}`,
+      }));
 
       reply.code(201);
-      return toMeetupDto(app.db, viewer, row!);
+      return toMeetupDto(app.db, viewer, meetup);
     },
   );
 
@@ -159,22 +165,22 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
       if (body.lng !== undefined) patch.lng = body.lng;
       if (body.rules !== undefined) patch.rules = body.rules || null;
 
-      const [updated] = Object.keys(patch).length
+      const [changed] = Object.keys(patch).length
         ? await app.db.update(meetups).set(patch).where(eq(meetups.id, row.id)).returning()
         : [row];
+      const updated = changed!;
 
-      const timeChanged = updated!.startsAt.getTime() !== row.startsAt.getTime();
-      const placeChanged =
-        updated!.lat !== row.lat || updated!.lng !== row.lng || updated!.locationName !== row.locationName;
+      const timeChanged = updated.startsAt.getTime() !== row.startsAt.getTime();
+      const placeChanged = updated.lat !== row.lat || updated.lng !== row.lng || updated.locationName !== row.locationName;
       if (timeChanged || placeChanged) {
-        await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), {
+        await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
           kind: 'meetup',
-          title: `Meetup updated: ${updated!.title}`,
-          body: timeChanged ? `New time: ${when(updated!)}` : 'The meeting point changed.',
+          title: tr('Meetup updated: {title}', { title: updated.title }),
+          body: timeChanged ? tr('New time: {when}', { when: when(updated, lang) }) : tr('The meeting point changed.'),
           link: `/meetups/${row.id}`,
-        });
+        }));
       }
-      return toMeetupDto(app.db, viewer, updated!);
+      return toMeetupDto(app.db, viewer, updated);
     },
   );
 
@@ -199,12 +205,12 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
         .set({ cancelledAt: viewer.now })
         .where(eq(meetups.id, row.id))
         .returning();
-      await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), {
+      await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
         kind: 'meetup',
-        title: `Cancelled: ${row.title}`,
-        body: when(row),
+        title: tr('Cancelled: {title}', { title: row.title }),
+        body: when(row, lang),
         link: `/meetups/${row.id}`,
-      });
+      }));
       return toMeetupDto(app.db, viewer, updated!);
     },
   );
@@ -270,9 +276,7 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
       if (row.hostId !== viewer.id && !(viewer.hasAccess && isStaff(viewer.role))) throw forbidden();
       const rows = await app.db
         .select({
-          id: users.id,
-          fullName: users.fullName,
-          role: users.role,
+          member: memberRefColumns(users),
           badgeNumber: users.badgeNumber,
           car: users.car,
           rsvpAt: meetupRsvps.createdAt,
@@ -281,7 +285,14 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
         .innerJoin(users, eq(meetupRsvps.userId, users.id))
         .where(eq(meetupRsvps.meetupId, row.id))
         .orderBy(asc(meetupRsvps.createdAt));
-      return { items: rows.map((r) => ({ ...r, rsvpAt: r.rsvpAt.toISOString() })) };
+      return {
+        items: rows.map((r) => ({
+          ...toMemberRef(r.member, viewer.now)!,
+          badgeNumber: r.badgeNumber,
+          car: r.car,
+          rsvpAt: r.rsvpAt.toISOString(),
+        })),
+      };
     },
   );
 };

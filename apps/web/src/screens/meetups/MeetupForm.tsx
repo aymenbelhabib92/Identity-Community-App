@@ -1,4 +1,4 @@
-import type { LatLng, Meetup, MeetupVisibility, Place } from '@identity/shared';
+import { t, type LatLng, type Meetup, type MeetupVisibility, type Place } from '@identity/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lazy, Suspense, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
@@ -22,6 +22,7 @@ import {
 import { api } from '../../lib/api';
 import { useCan } from '../../lib/auth';
 import { fieldErrors } from '../../lib/errors';
+import { clubText } from '../../lib/format';
 import { keys, useClubSettings } from '../../lib/queries';
 import s from './meetups.module.css';
 
@@ -84,7 +85,7 @@ export default function MeetupForm() {
   if (id && existing.error) {
     return (
       <Screen>
-        <BackLink to="/meetups">Meetups</BackLink>
+        <BackLink to="/meetups">{t('Meetups')}</BackLink>
         <ErrorState error={existing.error} />
       </Screen>
     );
@@ -104,7 +105,7 @@ export default function MeetupForm() {
         address: '',
         point: null,
         description: '',
-        rules: settings.data?.meetRules ?? '',
+        rules: clubText(settings.data?.meetRules ?? ''),
       };
 
   return <Form meetupId={id} initial={initial} />;
@@ -138,7 +139,7 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
       queryClient.setQueryData(keys.meetup(meetup.id), meetup);
       void queryClient.invalidateQueries({ queryKey: keys.meetups });
       void queryClient.invalidateQueries({ queryKey: keys.mapMeetups });
-      toast(meetupId ? 'Meetup updated' : 'Meetup created. Members are notified.', 'success');
+      toast(meetupId ? t('Meetup updated') : t('Meetup created. Members are notified.'), 'success');
       navigate(`/meetups/${meetup.id}`, { replace: true });
     },
   });
@@ -148,7 +149,7 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
     onSuccess: (meetup) => {
       queryClient.setQueryData(keys.meetup(meetup.id), meetup);
       void queryClient.invalidateQueries({ queryKey: keys.meetups });
-      toast('Meetup cancelled. Attendees are notified.', 'success');
+      toast(t('Meetup cancelled. Attendees are notified.'), 'success');
       navigate(`/meetups/${meetup.id}`, { replace: true });
     },
   });
@@ -165,19 +166,22 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
   };
 
   const visibilityHelp = {
-    public: 'Everyone in the club, pending members included. The meeting point is visible to all.',
-    secret: `Active members only. The meeting point stays hidden until ${form.revealHoursBefore} h before the start, and only members who confirmed see it.`,
-    staff: 'Organizers, treasurer and admins only.',
+    public: t('Everyone in the club, pending members included. The meeting point is visible to all.'),
+    secret: t(
+      'Active members only. The meeting point stays hidden until {hours} h before the start, and only members who confirmed see it.',
+      { hours: form.revealHoursBefore },
+    ),
+    staff: t('Organizers, treasurer and admins only.'),
   }[form.visibility];
 
   return (
     <Screen>
-      <BackLink to={meetupId ? `/meetups/${meetupId}` : '/meetups'}>{meetupId ? 'Meetup' : 'Meetups'}</BackLink>
-      <LargeTitle>{meetupId ? 'Edit meetup' : 'New meetup'}</LargeTitle>
+      <BackLink to={meetupId ? `/meetups/${meetupId}` : '/meetups'}>{meetupId ? t('Meetup') : t('Meetups')}</BackLink>
+      <LargeTitle>{meetupId ? t('Edit meetup') : t('New meetup')}</LargeTitle>
 
       <form className={s.form} onSubmit={submit} noValidate>
         <FormList>
-          <FormRow label="Title" htmlFor="title" invalid={Boolean(errors.title)}>
+          <FormRow label={t('Title')} htmlFor="title" invalid={Boolean(errors.title)}>
             <Input
               id="title"
               placeholder="Secret Night Meet"
@@ -189,26 +193,26 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
         </FormList>
 
         <Segmented
-          label="Visibility"
+          label={t('Visibility')}
           value={form.visibility}
           onChange={(value) => update('visibility', value)}
           options={[
-            { value: 'public', label: 'Public' },
-            { value: 'secret', label: 'Secret' },
-            { value: 'staff', label: 'Organizers' },
+            { value: 'public', label: t('Public') },
+            { value: 'secret', label: t('Secret') },
+            { value: 'staff', label: t('Organizers') },
           ]}
         />
         <p className={s.help}>{visibilityHelp}</p>
 
         <FormList>
-          <FormRow label="Date" htmlFor="date" invalid={Boolean(errors.startsAt)}>
+          <FormRow label={t('Date')} htmlFor="date" invalid={Boolean(errors.startsAt)}>
             <Input id="date" type="date" value={form.date} onChange={(event) => update('date', event.target.value)} />
           </FormRow>
-          <FormRow label="Start" htmlFor="time" invalid={Boolean(errors.startsAt)}>
+          <FormRow label={t('Start')} htmlFor="time" invalid={Boolean(errors.startsAt)}>
             <Input id="time" type="time" value={form.time} onChange={(event) => update('time', event.target.value)} />
           </FormRow>
           {form.visibility === 'secret' && (
-            <FormRow label="Reveal spot" htmlFor="reveal">
+            <FormRow label={t('Reveal spot')} htmlFor="reveal">
               <Select
                 id="reveal"
                 value={form.revealHoursBefore}
@@ -216,7 +220,7 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
               >
                 {REVEAL_OPTIONS.map((hours) => (
                   <option key={hours} value={hours}>
-                    {hours} h before
+                    {t('{hours} h before', { hours })}
                   </option>
                 ))}
               </Select>
@@ -224,21 +228,21 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
           )}
         </FormList>
 
-        <h2 className={s.formSection}>Meeting point</h2>
+        <h2 className={s.formSection}>{t('Meeting point')}</h2>
         <FormList>
-          <FormRow label="Spot" htmlFor="locationName">
+          <FormRow label={t('Spot')} htmlFor="locationName">
             <Input
               id="locationName"
-              placeholder="e.g. Lac 2 parking"
+              placeholder={t('e.g. Lac 2 parking')}
               value={form.locationName}
               maxLength={120}
               onChange={(event) => update('locationName', event.target.value)}
             />
           </FormRow>
-          <FormRow label="Address" htmlFor="address">
+          <FormRow label={t('Address')} htmlFor="address">
             <Input
               id="address"
-              placeholder="Optional"
+              placeholder={t('Optional')}
               value={form.address}
               maxLength={200}
               onChange={(event) => update('address', event.target.value)}
@@ -249,18 +253,18 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
           <MapPicker value={form.point} onChange={(point) => update('point', point)} onPlaceFound={onPlaceFound} />
         </Suspense>
 
-        <h2 className={s.formSection}>Details</h2>
+        <h2 className={s.formSection}>{t('Details')}</h2>
         <TextArea
-          aria-label="Description"
-          placeholder="The plan: route, dress code, what to bring…"
+          aria-label={t('Description')}
+          placeholder={t('The plan: route, dress code, what to bring…')}
           value={form.description}
           maxLength={2000}
           onChange={(event) => update('description', event.target.value)}
         />
 
-        <h2 className={s.formSection}>Meet rules</h2>
+        <h2 className={s.formSection}>{t('Meet rules')}</h2>
         <TextArea
-          aria-label="Meet rules"
+          aria-label={t('Meet rules')}
           value={form.rules}
           maxLength={2000}
           onChange={(event) => update('rules', event.target.value)}
@@ -270,21 +274,21 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
         {save.error && !hasFieldErrors && <ErrorState error={save.error} />}
 
         <Button type="submit" loading={save.isPending} disabled={form.title.trim().length < 3}>
-          {meetupId ? 'Save changes' : 'Create meetup'}
+          {meetupId ? t('Save changes') : t('Create meetup')}
         </Button>
         {meetupId && (
           <Button variant="danger" onClick={() => setConfirmCancel(true)}>
-            Cancel meetup
+            {t('Cancel meetup')}
           </Button>
         )}
       </form>
 
-      <Sheet open={confirmCancel} onClose={() => setConfirmCancel(false)} title="Cancel this meetup?">
+      <Sheet open={confirmCancel} onClose={() => setConfirmCancel(false)} title={t('Cancel this meetup?')}>
         <div className={s.form}>
-          <p className={s.body}>Members who are going will be notified. This cannot be undone.</p>
+          <p className={s.body}>{t('Members who are going will be notified. This cannot be undone.')}</p>
           {cancel.error && <ErrorState error={cancel.error} />}
           <Button variant="danger" loading={cancel.isPending} onClick={() => cancel.mutate()}>
-            Cancel meetup
+            {t('Cancel meetup')}
           </Button>
         </div>
       </Sheet>

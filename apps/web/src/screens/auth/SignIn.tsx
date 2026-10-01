@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { useMutation } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -38,11 +39,11 @@ export default function SignIn() {
         <div className={s.signInLogo}>
           <Logo width={150} />
         </div>
-        <LargeTitle>Sign in</LargeTitle>
+        <LargeTitle>{t('Sign in')}</LargeTitle>
         <form className={s.form} onSubmit={submit} noValidate>
           <div>
             <FormList>
-              <FormRow label="Phone" htmlFor="phone" invalid={Boolean(errors.phone)}>
+              <FormRow label={t('Phone')} htmlFor="phone" invalid={Boolean(errors.phone)}>
                 <Input
                   id="phone"
                   type="tel"
@@ -54,12 +55,12 @@ export default function SignIn() {
                   required
                 />
               </FormRow>
-              <FormRow label="Password" htmlFor="password" invalid={Boolean(errors.password)}>
+              <FormRow label={t('Password')} htmlFor="password" invalid={Boolean(errors.password)}>
                 <Input
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  placeholder="Required"
+                  placeholder={t('Required')}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
@@ -70,16 +71,16 @@ export default function SignIn() {
           </div>
           {login.error && !hasFieldErrors && <ErrorState error={login.error} />}
           <Button type="submit" loading={login.isPending} disabled={!phone || !password}>
-            Sign in
+            {t('Sign in')}
           </Button>
         </form>
         <p className={s.alt}>
-          New to Identity?{' '}
+          {t('New to Identity?')}{' '}
           <Link to="/join" state={location.state}>
-            Request membership
+            {t('Request membership')}
           </Link>
         </p>
-        <p className={s.hint}>Forgot your password? An admin can give you a temporary one.</p>
+        <p className={s.hint}>{t('Forgot your password? An admin can give you a temporary one.')}</p>
       </main>
     </div>
   );

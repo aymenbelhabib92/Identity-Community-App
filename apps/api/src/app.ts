@@ -5,7 +5,7 @@ import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { PROOF_MAX_BYTES } from '@identity/shared';
+import { DEFAULT_LANGUAGE, pickLanguage, PROOF_MAX_BYTES, translate, type TranslationParams } from '@identity/shared';
 import Fastify, { type FastifyError } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
@@ -63,6 +63,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.decorate('clubSettings', new SettingsStore(database.db));
   app.decorate('clock', { now: options.now ?? (() => new Date()) });
   app.decorateRequest('viewer', null as unknown as Viewer);
+  app.decorateRequest('lang', DEFAULT_LANGUAGE);
+  app.addHook('onRequest', async (request) => {
+    request.lang = pickLanguage(request.headers['accept-language']) ?? DEFAULT_LANGUAGE;
+  });
   app.addHook('onClose', async () => database.close());
 
   // JSON API only: the web app's CSP is set by the web server.
@@ -72,7 +76,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     await app.register(rateLimit, {
       global: false,
       errorResponseBuilder: (_request, context) =>
-        new AppError(429, 'RATE_LIMITED', `Too many attempts. Try again in ${context.after}.`),
+        new AppError(429, 'RATE_LIMITED', 'Too many attempts. Try again in {after}.', undefined, { after: context.after }),
     });
   }
   await app.register(jwt, { secret: config.jwtSecret });
@@ -99,30 +103,40 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });
 
+  // Messages are answered in the language of the request (Accept-Language).
   app.setErrorHandler((error: FastifyError, request, reply) => {
+    const tr = (text: string, params?: TranslationParams) => translate(request.lang, text, params);
+    const internal = () => reply.code(500).send({ error: { code: 'INTERNAL', message: tr('Something went wrong.') } });
+
     if (hasZodFastifySchemaValidationErrors(error)) {
       const details = error.validation.map((issue) => ({
         path: issue.instancePath.split('/').filter(Boolean),
-        message: issue.message ?? 'Invalid value',
+        message: tr(issue.message ?? 'Invalid value'),
       }));
-      return reply.code(400).send({ error: { code: 'VALIDATION', message: details[0]?.message ?? 'Invalid request', details } });
+      return reply.code(400).send({ error: { code: 'VALIDATION', message: details[0]?.message ?? tr('Invalid request'), details } });
     }
     if (error instanceof AppError) {
-      return reply
-        .code(error.statusCode)
-        .send({ error: { code: error.code, message: error.message, ...(error.details !== undefined && { details: error.details }) } });
+      const details = Array.isArray(error.details)
+        ? (error.details as { path: string[]; message: string }[]).map((issue) => ({
+            ...issue,
+            message: tr(issue.message, error.params),
+          }))
+        : error.details;
+      return reply.code(error.statusCode).send({
+        error: { code: error.code, message: tr(error.message, error.params), ...(details !== undefined && { details }) },
+      });
     }
     if (error instanceof ResponseSerializationError) {
       request.log.error({ issues: error.cause.issues, url: error.url }, 'response does not match its schema');
-      return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Something went wrong.' } });
+      return internal();
     }
     if (error.code === 'FST_REQ_FILE_TOO_LARGE') {
-      return reply.code(413).send({ error: { code: 'FILE_TOO_LARGE', message: 'The file is too large (max 8 MB).' } });
+      return reply.code(413).send({ error: { code: 'FILE_TOO_LARGE', message: tr('The file is too large (max 8 MB).') } });
     }
     const status = error.statusCode ?? 500;
     if (status >= 500) {
       request.log.error(error);
-      return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Something went wrong.' } });
+      return internal();
     }
     return reply.code(status).send({ error: { code: error.code ?? 'ERROR', message: error.message } });
   });

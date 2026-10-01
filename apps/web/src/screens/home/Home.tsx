@@ -1,6 +1,6 @@
-import { firstName } from '@identity/shared';
-import { Bell, Book, CalendarPlus, Navigation, Shield, Upload } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { firstName, t, tn } from '@identity/shared';
+import { Bell, Book, CalendarPlus, Navigation, QrCode, Shield, Upload } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Logo } from '../../components/brand/Logo';
 import { Shards } from '../../components/brand/Shards';
@@ -23,6 +23,7 @@ import { useCan, useUser } from '../../lib/auth';
 import { greeting } from '../../lib/format';
 import { isActiveMeetup } from '../../lib/meetups';
 import { useAdminOverview, useMeetups, useNotifications } from '../../lib/queries';
+import { QrSheet } from '../pass/QrSheet';
 import { Announcements } from './Announcements';
 import s from './home.module.css';
 import { MembershipAlert } from './MembershipAlert';
@@ -34,6 +35,8 @@ export default function Home() {
   const meetups = useMeetups('upcoming');
   const next = meetups.data?.items.find(isActiveMeetup);
   const canCreateMeetup = useCan('meetups:create');
+  const [qrOpen, setQrOpen] = useState(false);
+  const hasPass = user.badgeNumber !== null && user.state !== 'suspended';
 
   return (
     <Screen>
@@ -43,23 +46,30 @@ export default function Home() {
           <h1 className={s.name}>{firstName(user.fullName)}</h1>
         </div>
         <div className={s.headerActions}>
-          <RoundButton label="Notifications" to="/notifications" dot={(notifications?.unread ?? 0) > 0}>
+          <RoundButton label={t('Notifications')} to="/notifications" dot={(notifications?.unread ?? 0) > 0}>
             <Bell aria-hidden strokeWidth={2} />
           </RoundButton>
-          <Link to="/profile" aria-label="Profile">
-            <Avatar name={user.fullName} />
+          <Link to="/profile" aria-label={t('My account')} className={s.account}>
+            <Avatar name={user.fullName} photo={user.avatar} state={user.state} online />
           </Link>
         </div>
       </header>
 
       <Shards className={s.banner}>
         <Logo height={40} className={s.bannerLogo} />
-        <StatePill state={user.state} />
+        <div className={s.bannerSide}>
+          <StatePill state={user.state} />
+          {hasPass && (
+            <button type="button" className={s.bannerQr} onClick={() => setQrOpen(true)} aria-label={t('Show my pass QR code')}>
+              <QrCode aria-hidden strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </Shards>
 
       <MembershipAlert user={user} />
 
-      <SectionTitle action={<SectionAction to="/meetups">See all</SectionAction>}>Next meetup</SectionTitle>
+      <SectionTitle action={<SectionAction to="/meetups">{t('See all')}</SectionAction>}>{t('Next meetup')}</SectionTitle>
       {meetups.isPending ? (
         <Card>
           <Loading />
@@ -68,22 +78,29 @@ export default function Home() {
         <NextMeetupCard meetup={next} />
       ) : canCreateMeetup ? (
         <List>
-          <ListRow to="/meetups/new" tile={{ icon: <CalendarPlus />, color: 'blue' }} title="Plan a meetup" subtitle="Nothing on the calendar yet" />
+          <ListRow
+            to="/meetups/new"
+            tile={{ icon: <CalendarPlus />, color: 'blue' }}
+            title={t('Plan a meetup')}
+            subtitle={t('Nothing on the calendar yet')}
+          />
         </List>
       ) : (
         <Card>
-          <EmptyState>No meetup planned yet. You will be notified when one is.</EmptyState>
+          <EmptyState>{t('No meetup planned yet. You will be notified when one is.')}</EmptyState>
         </Card>
       )}
 
       <div className={s.actions}>
-        <QuickAction to="/map" color="blue" icon={<Navigation />} label="Share location" />
-        <QuickAction to="/pass/pay" color="green" icon={<Upload />} label="Payment proof" />
-        <QuickAction to="/rules" color="orange" icon={<Book />} label="Club rules" />
+        <QuickAction to="/map" color="blue" icon={<Navigation />} label={t('Share location')} />
+        <QuickAction to="/pass/pay" color="green" icon={<Upload />} label={t('Payment proof')} />
+        <QuickAction to="/rules" color="orange" icon={<Book />} label={t('Club rules')} />
       </div>
 
       <AdminShortcut />
       <Announcements />
+
+      {hasPass && <QrSheet open={qrOpen} onClose={() => setQrOpen(false)} member={user} />}
     </Screen>
   );
 }
@@ -103,8 +120,8 @@ function AdminShortcut() {
   if (!isStaff) return null;
 
   const todo = [
-    data?.pendingPayments ? `${data.pendingPayments} payment${data.pendingPayments > 1 ? 's' : ''} to review` : null,
-    data?.pendingMembers ? `${data.pendingMembers} request${data.pendingMembers > 1 ? 's' : ''}` : null,
+    data?.pendingPayments ? tn(data.pendingPayments, '{count} payment to review', '{count} payments to review') : null,
+    data?.pendingMembers ? tn(data.pendingMembers, '{count} request', '{count} requests') : null,
   ].filter(Boolean);
 
   return (
@@ -112,8 +129,8 @@ function AdminShortcut() {
       <ListRow
         to="/admin"
         tile={{ icon: <Shield />, color: 'purple' }}
-        title="Club admin"
-        subtitle={todo.length ? todo.join(' · ') : 'Members, payments, check-in'}
+        title={t('Club admin')}
+        subtitle={todo.length ? todo.join(' · ') : t('Members, payments, check-in')}
       />
     </List>
   );

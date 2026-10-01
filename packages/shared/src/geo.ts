@@ -4,12 +4,12 @@ export interface LatLng {
 }
 
 /** Shared positions are snapped to a grid of this size — never the exact spot. */
-export const LOCATION_PRECISION_METERS = 500;
+export const LOCATION_PRECISION_METERS = 100;
 
 const METERS_PER_DEGREE_LAT = 111_320;
 
 /**
- * Snaps a position to the centre of a ~500 m grid cell. Snapping (rather than
+ * Snaps a position to the centre of a grid cell. Snapping (rather than
  * random noise) keeps the published point stable, so repeated updates from the
  * same place cannot be averaged back to the real address.
  */

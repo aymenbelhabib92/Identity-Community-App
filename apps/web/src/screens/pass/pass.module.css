@@ -43,8 +43,14 @@
   height: 32px;
 }
 
-.passName {
+.passHolder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 28px;
+}
+
+.passName {
   font-size: 21px;
   font-weight: 700;
 }
@@ -160,7 +166,7 @@
   width: 100%;
   min-height: 132px;
   padding: 18px;
-  border: 1.5px dashed #48484a;
+  border: 1.5px dashed var(--surface-4);
   border-radius: var(--radius-card);
   background: var(--surface);
   color: var(--blue);

@@ -15,6 +15,7 @@ import {
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
 } from './constants';
+import { LANGUAGES } from './i18n';
 import { MEMBER_STATUSES, MEMBERSHIP_STATES } from './membership';
 import { PERMISSIONS, ROLES, type Permission } from './roles';
 
@@ -49,11 +50,23 @@ const items = <T extends z.ZodType>(item: T) => z.object({ items: z.array(item) 
 
 // ─── Users & auth ────────────────────────────────────────────────────────────
 
+export const languageSchema = z.enum(LANGUAGES);
+
+/** Photos are fetched with `GET /photos/{id}` (signed-in members only). */
+const photoRef = idSchema.nullable().describe('Photo id, see GET /photos/{id}');
+const carPhotoRefs = z.array(idSchema).describe('Photo ids, main photo first');
+
 export const userSchema = z.object({
   id: idSchema,
   fullName: z.string(),
   phone: z.string(),
   car: z.string().nullable(),
+  avatar: photoRef,
+  carPhotos: carPhotoRefs,
+  /** Preferred language; null until the member's app has set it. */
+  language: languageSchema.nullable(),
+  /** Used the app within the last few minutes (see ONLINE_WINDOW_MINUTES). */
+  online: z.boolean(),
   role: roleSchema,
   status: memberStatusSchema,
   state: membershipStateSchema,
@@ -73,6 +86,8 @@ export const memberRefSchema = z.object({
   id: idSchema,
   fullName: z.string(),
   role: roleSchema,
+  avatar: photoRef,
+  online: z.boolean(),
 });
 export type MemberRef = z.infer<typeof memberRefSchema>;
 
@@ -101,6 +116,7 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 export const updateMeBodySchema = z.object({
   fullName: fullNameInput.optional(),
   car: carInput.nullable().optional(),
+  language: languageSchema.optional(),
 });
 export type UpdateMeBody = z.infer<typeof updateMeBodySchema>;
 
@@ -174,6 +190,7 @@ export const memberSummarySchema = z.object({
   id: idSchema,
   fullName: z.string(),
   phone: z.string(),
+  avatar: photoRef,
   badgeNumber: z.number().int().nullable(),
   state: membershipStateSchema,
 });
@@ -320,6 +337,8 @@ export const attendeeSchema = z.object({
   id: idSchema,
   fullName: z.string(),
   role: roleSchema,
+  avatar: photoRef,
+  online: z.boolean(),
   badgeNumber: z.number().int().nullable(),
   car: z.string().nullable(),
   rsvpAt: timestampSchema,
@@ -390,7 +409,10 @@ export const mapMemberSchema = z.object({
   id: idSchema,
   fullName: z.string(),
   role: roleSchema,
+  avatar: photoRef,
+  online: z.boolean(),
   car: z.string().nullable(),
+  carPhotos: carPhotoRefs,
   lat: z.number(),
   lng: z.number(),
   updatedAt: timestampSchema,
@@ -440,10 +462,12 @@ export const passVerificationSchema = z.object({
       id: idSchema,
       fullName: z.string(),
       role: roleSchema,
+      avatar: photoRef,
       badgeNumber: z.number().int().nullable(),
       state: membershipStateSchema,
       paidUntil: isoDateSchema.nullable(),
       car: z.string().nullable(),
+      carPhotos: carPhotoRefs,
     })
     .nullable(),
 });

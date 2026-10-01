@@ -38,6 +38,7 @@ import type {
   UpdateMemberBody,
   User,
 } from './api';
+import { t } from './i18n';
 import type { ClubInfo, ClubSettings, ClubSettingsUpdate } from './settings';
 
 export class ApiError extends Error {
@@ -70,6 +71,8 @@ export interface ApiClientOptions {
   /** e.g. "/api/v1" on the web, "https://club.example.com/api/v1" on mobile. */
   baseUrl: string;
   getToken?: () => string | null | undefined;
+  /** Sent as Accept-Language: error messages and labels come back in this language. */
+  getLanguage?: () => string | null | undefined;
   /** Called when an authenticated request is rejected (expired or revoked token). */
   onUnauthorized?: () => void;
   fetch?: typeof fetch;
@@ -103,6 +106,8 @@ export function createApiClient(options: ApiClientOptions) {
     const headers: Record<string, string> = { Accept: 'application/json' };
     const token = options.getToken?.();
     if (token) headers.Authorization = `Bearer ${token}`;
+    const language = options.getLanguage?.();
+    if (language) headers['Accept-Language'] = language;
 
     let body: BodyInit | undefined;
     if (init.form) {
@@ -116,7 +121,7 @@ export function createApiClient(options: ApiClientOptions) {
     try {
       response = await doFetch(url, { method, headers, body });
     } catch {
-      throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection.');
+      throw new ApiError(0, 'NETWORK', t('Cannot reach the server. Check your connection.'));
     }
 
     if (!response.ok) {
@@ -130,7 +135,7 @@ export function createApiClient(options: ApiClientOptions) {
       throw new ApiError(
         response.status,
         payload?.error?.code ?? `HTTP_${response.status}`,
-        payload?.error?.message ?? (response.statusText || 'Request failed'),
+        payload?.error?.message ?? (response.statusText || t('Request failed')),
         payload?.error?.details,
       );
     }
@@ -159,9 +164,20 @@ export function createApiClient(options: ApiClientOptions) {
       update: (body: UpdateMeBody) => json<User>('PATCH', '/me', { body }),
       /** Signs out other devices; returns a fresh token for this one. */
       changePassword: (body: ChangePasswordBody) => json<AuthResponse>('POST', '/me/password', { body }),
+      /** Multipart form with a `file` part (JPG, PNG or WEBP). Replaces the current photo. */
+      setAvatar: (form: FormData) => json<User>('PUT', '/me/avatar', { form }),
+      removeAvatar: () => json<User>('DELETE', '/me/avatar'),
+      /** Multipart form with a `file` part. Up to CAR_PHOTOS_MAX photos. */
+      addCarPhoto: (form: FormData) => json<User>('POST', '/me/car-photos', { form }),
+      removeCarPhoto: (photoId: string) => json<User>('DELETE', `/me/car-photos/${id(photoId)}`),
       location: () => get<MyLocation>('/me/location'),
       setLocationSharing: (enabled: boolean) => json<MyLocation>('PUT', '/me/location-sharing', { body: { enabled } }),
       updateLocation: (body: LocationUpdateBody) => json<MyLocation>('PUT', '/me/location', { body }),
+    },
+
+    photos: {
+      /** A member's profile or car photo. */
+      get: (photoId: string) => blob(`/photos/${id(photoId)}`),
     },
 
     club: {

@@ -1,4 +1,11 @@
-import { distanceMeters, type MapMember, type MyLocation, type PassToken, type PassVerification } from '@identity/shared';
+import {
+  distanceMeters,
+  LOCATION_PRECISION_METERS,
+  type MapMember,
+  type MyLocation,
+  type PassToken,
+  type PassVerification,
+} from '@identity/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { activeMember, adminToken, bearer, createTestApp, register, type TestContext } from './helpers';
 
@@ -44,7 +51,7 @@ describe('member map', () => {
     const stored = res.json<MyLocation>();
     expect(stored.sharing).toBe(true);
     expect(stored.lat).not.toBe(HOME.lat);
-    expect(distanceMeters(HOME, { lat: stored.lat!, lng: stored.lng! })).toBeLessThan(500);
+    expect(distanceMeters(HOME, { lat: stored.lat!, lng: stored.lng! })).toBeLessThan(LOCATION_PRECISION_METERS);
   });
 
   it('shows sharing members to other members, not to themselves', async () => {

@@ -26,10 +26,7 @@ export const membershipRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/membership',
     { schema: { tags: ['membership'], summary: 'My membership, fees and payments', response: { 200: membershipSchema } } },
-    async (request) => {
-      const { viewer } = request;
-      return buildMembership(app.db, viewer.user, viewer.settings, viewer.today);
-    },
+    async (request) => buildMembership(app.db, request.viewer.user, request.viewer),
   );
 
   app.post(
@@ -98,15 +95,16 @@ export const membershipRoutes: FastifyPluginAsyncZod = async (app) => {
           })
           .returning();
 
-        await notify(app.db, await staffWith(app.db, 'payments:review'), {
+        const payment = row!;
+        await notify(app.db, await staffWith(app.db, 'payments:review'), (tr, lang) => ({
           kind: 'payment_review',
-          title: form.method === 'proof' ? 'Payment proof to review' : 'In-person payment announced',
-          body: `${shortName(viewer.user.fullName)} · ${paymentLabel(row!)} · ${formatMoney(row!.amount, viewer.settings.currency)}`,
+          title: tr(form.method === 'proof' ? 'Payment proof to review' : 'In-person payment announced'),
+          body: `${shortName(viewer.user.fullName)} · ${paymentLabel(payment, lang)} · ${formatMoney(payment.amount, viewer.settings.currency)}`,
           link: '/admin/payments',
-        });
+        }));
 
         reply.code(201);
-        return toPaymentDto(row!, null);
+        return toPaymentDto(payment, null, viewer.lang);
       } catch (err) {
         if (upload) await app.storage.remove(upload.key);
         if (isUniqueViolation(err)) throw conflict('ENTRY_FEE_PENDING', 'The entry fee is already awaiting review.');

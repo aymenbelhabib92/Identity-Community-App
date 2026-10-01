@@ -1,5 +1,6 @@
 import type {
   AnnouncementAudience,
+  Language,
   MeetupVisibility,
   MemberStatus,
   PaymentKind,
@@ -38,6 +39,13 @@ export const users = pgTable('users', {
   phone: text('phone').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   car: text('car'),
+  /** Ids in `member_photos`, kept here so a member row is enough to describe them. */
+  avatarPhotoId: uuid('avatar_photo_id'),
+  carPhotoIds: jsonb('car_photo_ids').$type<string[]>().notNull().default([]),
+  /** Preferred language (notifications are written in it); null until the app sets it. */
+  language: text('language').$type<Language>(),
+  /** Last authenticated request, refreshed at most once a minute. */
+  lastSeenAt: timestamptz('last_seen_at'),
   role: text('role').$type<Role>().notNull().default('member'),
   status: text('status').$type<MemberStatus>().notNull().default('pending'),
   /** Assigned when the membership is first activated. */
@@ -52,7 +60,23 @@ export const users = pgTable('users', {
   updatedAt: updatedAt(),
 });
 
-/** Latest shared position per member, already snapped to the ~500 m grid. */
+/** Profile photos (one per member) and car photos, stored through `Storage`. */
+export const memberPhotos = pgTable(
+  'member_photos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'avatar' | 'car'>().notNull(),
+    file: text('file').notNull(),
+    mime: text('mime').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('member_photos_user_idx').on(t.userId)],
+);
+
+/** Latest shared position per member, already snapped to the grid (LOCATION_PRECISION_METERS). */
 export const memberLocations = pgTable('member_locations', {
   userId: uuid('user_id')
     .primaryKey()

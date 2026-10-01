@@ -4,6 +4,7 @@ import {
   formatPhone,
   loginBodySchema,
   normalizePhone,
+  pickLanguage,
   registerBodySchema,
 } from '@identity/shared';
 import { eq } from 'drizzle-orm';
@@ -49,24 +50,33 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       try {
         [user] = await app.db
           .insert(users)
-          .values({ fullName, phone, car: car || null, passwordHash: await hashPassword(password) })
+          .values({
+            fullName,
+            phone,
+            car: car || null,
+            passwordHash: await hashPassword(password),
+            // The language of the app the member signed up with.
+            language: pickLanguage(request.headers['accept-language']),
+            lastSeenAt: app.clock.now(),
+          })
           .returning();
       } catch (err) {
         if (isUniqueViolation(err)) throw phoneTaken();
         throw err;
       }
       if (!user) throw new Error('Insert returned no row');
+      const member = user;
 
-      await notify(app.db, await staffWith(app.db, 'payments:review'), {
+      await notify(app.db, await staffWith(app.db, 'payments:review'), (tr) => ({
         kind: 'membership',
-        title: 'New membership request',
-        body: `${user.fullName} · ${formatPhone(user.phone)}`,
-        link: `/admin/members/${user.id}`,
-      });
+        title: tr('New membership request'),
+        body: `${member.fullName} · ${formatPhone(member.phone)}`,
+        link: `/admin/members/${member.id}`,
+      }));
 
-      const viewer = await buildViewer(app, user);
+      const viewer = await buildViewer(app, user, request.lang);
       reply.code(201);
-      return { token: signAccessToken(app, user), user: toUserDto(user, viewer.settings, viewer.today) };
+      return { token: signAccessToken(app, user), user: toUserDto(user, viewer) };
     },
   );
 
@@ -92,8 +102,10 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
       if (!(await verifyPassword(request.body.password, user.passwordHash))) throw invalid;
 
-      const viewer = await buildViewer(app, user);
-      return { token: signAccessToken(app, user), user: toUserDto(user, viewer.settings, viewer.today) };
+      const now = app.clock.now();
+      await app.db.update(users).set({ lastSeenAt: now, updatedAt: user.updatedAt }).where(eq(users.id, user.id));
+      const viewer = await buildViewer(app, { ...user, lastSeenAt: now }, request.lang);
+      return { token: signAccessToken(app, user), user: toUserDto(viewer.user, viewer) };
     },
   );
 

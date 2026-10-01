@@ -1,8 +1,10 @@
+import { t } from '@identity/shared';
 import { Check, Download, Ellipsis, EllipsisVertical, ExternalLink, Share, SquarePlus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { InstallPlatform } from '../../lib/install';
 import { List, ListRow, SectionFooter, Sheet } from '../ui';
 
+/** English source texts, translated when displayed. */
 interface Guide {
   title: string;
   steps: { icon: ReactNode; title: string; subtitle?: string }[];
@@ -65,13 +67,13 @@ export function InstallHelpSheet({
 }) {
   const guide = GUIDES[platform];
   return (
-    <Sheet open={open} onClose={onClose} title={guide.title}>
+    <Sheet open={open} onClose={onClose} title={t(guide.title)}>
       <List>
         {guide.steps.map((step) => (
-          <ListRow key={step.title} icon={step.icon} title={step.title} subtitle={step.subtitle} />
+          <ListRow key={step.title} icon={step.icon} title={t(step.title)} subtitle={step.subtitle && t(step.subtitle)} />
         ))}
       </List>
-      <SectionFooter>{guide.footer}</SectionFooter>
+      <SectionFooter>{t(guide.footer)}</SectionFooter>
     </Sheet>
   );
 }

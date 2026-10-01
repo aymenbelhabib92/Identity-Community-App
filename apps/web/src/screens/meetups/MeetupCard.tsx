@@ -1,4 +1,4 @@
-import { formatDayDateTime, type Meetup } from '@identity/shared';
+import { formatDayDateTime, t, tn, type Meetup } from '@identity/shared';
 import { Check, Lock, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router';
 import { Badge } from '../../components/ui';
@@ -18,12 +18,12 @@ export function VisibilityBadge({ meetup }: { meetup: Pick<Meetup, 'visibility'>
 }
 
 function Summary({ meetup }: { meetup: Meetup }) {
-  if (meetup.visibility === 'staff') return <p className={s.text}>Visible to Organizer role and above</p>;
+  if (meetup.visibility === 'staff') return <p className={s.text}>{t('Visible to Organizer role and above')}</p>;
   if (meetup.locationStatus === 'visible') {
     return (
       <p className={s.place}>
         <MapPin aria-hidden />
-        {meetup.location?.name || meetup.location?.address || 'Meeting point on the map'}
+        {meetup.location?.name || meetup.location?.address || t('Meeting point on the map')}
       </p>
     );
   }
@@ -31,14 +31,17 @@ function Summary({ meetup }: { meetup: Meetup }) {
     return (
       <p className={s.place}>
         <MapPin aria-hidden />
-        Meeting point to be announced
+        {t('Meeting point to be announced')}
       </p>
     );
   }
-  const hours = meetup.revealHoursBefore;
   return (
     <p className={s.text}>
-      Meeting point revealed to confirmed members {hours} hour{hours === 1 ? '' : 's'} before start.
+      {tn(
+        meetup.revealHoursBefore,
+        'Meeting point revealed to confirmed members {count} hour before start.',
+        'Meeting point revealed to confirmed members {count} hours before start.',
+      )}
     </p>
   );
 }
@@ -53,7 +56,7 @@ export function MeetupCard({ meetup }: { meetup: Meetup }) {
       <div className={s.cardHead}>
         <div className={s.badges}>
           <VisibilityBadge meetup={meetup} />
-          {cancelled && <Badge tone="gray">Cancelled</Badge>}
+          {cancelled && <Badge tone="gray">{t('Cancelled')}</Badge>}
         </div>
         <span className={s.when}>{formatDayDateTime(meetup.startsAt)}</span>
       </div>
@@ -65,17 +68,17 @@ export function MeetupCard({ meetup }: { meetup: Meetup }) {
             {meetup.goingCount > 0 && (
               <>
                 <Users aria-hidden />
-                {meetup.goingCount} {past ? 'went' : 'going'}
+                {past ? t('{count} went', { count: meetup.goingCount }) : t('{count} going', { count: meetup.goingCount })}
               </>
             )}
           </span>
           {meetup.going ? (
             <span className={s.rsvpDone}>
               <Check aria-hidden strokeWidth={3} />
-              Going
+              {t("You're going")}
             </span>
           ) : (
-            meetup.canRsvp && <span className={s.rsvp}>RSVP</span>
+            meetup.canRsvp && <span className={s.rsvp}>{t('RSVP')}</span>
           )}
         </div>
       )}

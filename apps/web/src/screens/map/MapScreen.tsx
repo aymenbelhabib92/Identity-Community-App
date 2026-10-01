@@ -1,9 +1,10 @@
 import 'leaflet/dist/leaflet.css';
 import {
   DEFAULT_MAP_CENTER,
-  formatRelative,
   initials,
-  ROLE_LABELS,
+  LOCATION_PRECISION_METERS,
+  t,
+  tn,
   type LatLng,
   type MapMeetup,
   type MapMember,
@@ -18,7 +19,8 @@ import { useNavigate } from 'react-router';
 import Supercluster, { type PointFeature } from 'supercluster';
 import { clusterIcon, meetupIcon, memberIcon, meIcon, pinIcon } from '../../components/map/markers';
 import mapStyles from '../../components/map/map.module.css';
-import { MAX_ZOOM, TILE_ATTRIBUTION, TILE_URL } from '../../components/map/tiles';
+import { MAX_ZOOM, TILE_ATTRIBUTION, useTileUrl } from '../../components/map/tiles';
+import { CarPhotoStrip } from '../../components/photos/Photos';
 import {
   Avatar,
   ButtonLink,
@@ -33,8 +35,10 @@ import {
 import { api } from '../../lib/api';
 import { useUser } from '../../lib/auth';
 import { errorMessage } from '../../lib/errors';
+import { roleLabel, timeAgo } from '../../lib/format';
 import { useDebounced } from '../../lib/hooks';
 import { useLocationSharing } from '../../lib/location';
+import { usePhoto } from '../../lib/photos';
 import { useMapMeetups, useMapMembers } from '../../lib/queries';
 import s from './map-screen.module.css';
 
@@ -43,6 +47,7 @@ type Layer = 'members' | 'meetups';
 export default function MapScreen() {
   const user = useUser();
   const location = useLocationSharing();
+  const tileUrl = useTileUrl();
   const [map, setMap] = useState<LeafletMap | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const [bottomHeight, setBottomHeight] = useState(140);
@@ -64,7 +69,7 @@ export default function MapScreen() {
   const meetups = useMapMeetups();
   const memberList = useMemo(() => members.data?.items ?? [], [members.data]);
 
-  const flyTo = (point: LatLng, zoom = 15) => map?.flyTo([point.lat, point.lng], zoom, { duration: 0.7 });
+  const flyTo = (point: LatLng, zoom = 16) => map?.flyTo([point.lat, point.lng], zoom, { duration: 0.7 });
 
   return (
     <div className={s.screen} style={{ '--card-height': `${bottomHeight + 18}px` } as CSSProperties}>
@@ -79,7 +84,7 @@ export default function MapScreen() {
           className={mapStyles.map}
         >
           <AttributionControl position="bottomleft" />
-          <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={MAX_ZOOM} />
+          <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} maxZoom={MAX_ZOOM} />
           <InitialView position={location.sharing ? location.position : null} members={memberList} />
           {layer === 'members' && user.hasAccess && (
             <MemberLayer members={memberList} onSelect={setSelected} onGroup={setGroup} />
@@ -102,29 +107,29 @@ export default function MapScreen() {
         <SearchPanel
           members={user.hasAccess ? memberList : []}
           onMember={(member) => {
-            flyTo(member, 15);
+            flyTo(member);
             setSelected(member);
           }}
           onPlace={(place) => {
             setPlacePin(place);
-            flyTo(place, 15);
+            flyTo(place);
           }}
         />
         <Segmented
           className={s.segmented}
-          label="Map layer"
+          label={t('Map layer')}
           value={layer}
           onChange={setLayer}
           options={[
-            { value: 'members', label: 'Members' },
-            { value: 'meetups', label: 'Meetups' },
+            { value: 'members', label: t('Members') },
+            { value: 'meetups', label: t('Meetups') },
           ]}
         />
       </div>
 
       <div className={s.bottom} ref={bottom}>
         {location.sharing && location.position && (
-          <button type="button" className={s.recenter} onClick={() => flyTo(location.position!, 14)} aria-label="Show my position">
+          <button type="button" className={s.recenter} onClick={() => flyTo(location.position!)} aria-label={t('Show my position')}>
             <LocateFixed aria-hidden />
           </button>
         )}
@@ -132,12 +137,12 @@ export default function MapScreen() {
       </div>
 
       <MemberSheet member={selected} onClose={() => setSelected(null)} />
-      <Sheet open={group !== null} onClose={() => setGroup(null)} title="Members here">
+      <Sheet open={group !== null} onClose={() => setGroup(null)} title={t('Members here')}>
         <List>
           {group?.map((member) => (
             <ListRow
               key={member.id}
-              leading={<Avatar name={member.fullName} size={36} />}
+              leading={<Avatar name={member.fullName} photo={member.avatar} size={36} online={member.online} />}
               title={member.fullName}
               subtitle={member.car ?? undefined}
               onClick={() => {
@@ -159,10 +164,10 @@ function InitialView({ position, members }: { position: LatLng | null; members: 
   useEffect(() => {
     if (done.current) return;
     if (position) {
-      map.setView([position.lat, position.lng], 13);
+      map.setView([position.lat, position.lng], 14);
       done.current = true;
     } else if (members.length > 0) {
-      map.fitBounds(L.latLngBounds(members.map((m) => [m.lat, m.lng] as [number, number])).pad(0.35), { maxZoom: 13 });
+      map.fitBounds(L.latLngBounds(members.map((m) => [m.lat, m.lng] as [number, number])).pad(0.35), { maxZoom: 14 });
       done.current = true;
     }
   }, [map, position, members]);
@@ -214,11 +219,11 @@ function MemberLayer({
               key={`cluster-${clusterId}`}
               position={[lat, lng]}
               icon={clusterIcon(count)}
-              title={`${count} members`}
+              title={tn(count, '{count} member', '{count} members')}
               eventHandlers={{
                 click: () => {
                   const expansion = index.getClusterExpansionZoom(clusterId);
-                  // Members sharing the same ~500 m cell never split apart: list them instead.
+                  // Members sharing the same grid cell never split apart: list them instead.
                   if (expansion > MAX_ZOOM - 1 || zoom >= MAX_ZOOM - 1) {
                     onGroup(index.getLeaves(clusterId, Infinity).map((leaf) => leaf.properties.member));
                   } else {
@@ -230,17 +235,22 @@ function MemberLayer({
           );
         }
         const { member } = (feature as MemberFeature).properties;
-        return (
-          <Marker
-            key={member.id}
-            position={[lat, lng]}
-            icon={memberIcon(initials(member.fullName))}
-            title={member.fullName}
-            eventHandlers={{ click: () => onSelect(member) }}
-          />
-        );
+        return <MemberMarker key={member.id} member={member} onSelect={onSelect} />;
       })}
     </>
+  );
+}
+
+/** A member on the map: their photo when they have one, a green dot when they are online. */
+function MemberMarker({ member, onSelect }: { member: MapMember; onSelect: (member: MapMember) => void }) {
+  const photo = usePhoto(member.avatar);
+  return (
+    <Marker
+      position={[member.lat, member.lng]}
+      icon={memberIcon(initials(member.fullName), photo, member.online)}
+      title={member.fullName}
+      eventHandlers={{ click: () => onSelect(member) }}
+    />
   );
 }
 
@@ -296,15 +306,15 @@ function SearchPanel({
         <Search aria-hidden />
         <input
           type="search"
-          placeholder="Search members or places"
+          placeholder={t('Search members or places')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
-          aria-label="Search members or places"
+          aria-label={t('Search members or places')}
         />
         {query && (
-          <button type="button" className={s.clear} onClick={() => setQuery('')} aria-label="Clear search">
+          <button type="button" className={s.clear} onClick={() => setQuery('')} aria-label={t('Clear search')}>
             <X aria-hidden strokeWidth={3} />
           </button>
         )}
@@ -314,11 +324,11 @@ function SearchPanel({
         <div className={s.results}>
           {matches.length > 0 && (
             <>
-              <p className={s.resultsTitle}>Members</p>
+              <p className={s.resultsTitle}>{t('Members')}</p>
               {matches.map((member) => (
                 <ListRow
                   key={member.id}
-                  leading={<Avatar name={member.fullName} size={32} />}
+                  leading={<Avatar name={member.fullName} photo={member.avatar} size={32} online={member.online} />}
                   title={member.fullName}
                   subtitle={member.car ?? undefined}
                   onClick={() => {
@@ -331,10 +341,10 @@ function SearchPanel({
           )}
           {debounced.length >= 3 && (
             <>
-              <p className={s.resultsTitle}>Places</p>
-              {places.isPending && <p className={s.resultsEmpty}>Searching…</p>}
+              <p className={s.resultsTitle}>{t('Places')}</p>
+              {places.isPending && <p className={s.resultsEmpty}>{t('Searching…')}</p>}
               {places.error && <p className={s.resultsEmpty}>{errorMessage(places.error)}</p>}
-              {places.data?.items.length === 0 && <p className={s.resultsEmpty}>No place found.</p>}
+              {places.data?.items.length === 0 && <p className={s.resultsEmpty}>{t('No place found.')}</p>}
               {places.data?.items.map((place) => (
                 <ListRow
                   key={`${place.lat},${place.lng}`}
@@ -349,7 +359,7 @@ function SearchPanel({
               ))}
             </>
           )}
-          {matches.length === 0 && debounced.length < 3 && <p className={s.resultsEmpty}>Keep typing…</p>}
+          {matches.length === 0 && debounced.length < 3 && <p className={s.resultsEmpty}>{t('Keep typing…')}</p>}
         </div>
       )}
     </>
@@ -383,17 +393,19 @@ function ShareCard() {
           <Navigation />
         </IconTile>
         <div className={s.shareText}>
-          <p className={s.shareTitle}>Share my location</p>
+          <p className={s.shareTitle}>{t('Share my location')}</p>
           <p className={s.shareSub}>
-            {checked ? 'On · approximate position (± 500 m)' : 'Off · you are hidden from the map'}
+            {checked
+              ? t('On · approximate position (about {meters} m)', { meters: LOCATION_PRECISION_METERS })
+              : t('Off · you are hidden from the map')}
           </p>
         </div>
-        <Toggle checked={checked} onChange={(next) => void toggle(next)} label="Share my location" disabled={pending !== null} />
+        <Toggle checked={checked} onChange={(next) => void toggle(next)} label={t('Share my location')} disabled={pending !== null} />
       </div>
       {message && <p className={s.shareError}>{message}</p>}
       <p className={s.shareFoot}>
         <Lock aria-hidden />
-        Visible to active members only · never your exact address
+        {t('Visible to active members only · never your exact address')}
       </p>
     </div>
   );
@@ -407,22 +419,16 @@ function LockedCard() {
           <Lock />
         </IconTile>
         <div className={s.shareText}>
-          <p className={s.shareTitle}>Member map</p>
-          <p className={s.shareSub}>Opens once your membership is active</p>
+          <p className={s.shareTitle}>{t('Member map')}</p>
+          <p className={s.shareSub}>{t('Opens once your membership is active')}</p>
         </div>
       </div>
-      <p className={s.lockedText}>Active members see each other here and can share their approximate position.</p>
+      <p className={s.lockedText}>{t('Active members see each other here and can share their approximate position.')}</p>
       <ButtonLink to="/pass" size="small">
-        View my membership
+        {t('View my membership')}
       </ButtonLink>
     </div>
   );
-}
-
-function sharedAgo(date: string): string {
-  const relative = formatRelative(date);
-  if (relative === 'now') return 'Just now';
-  return /^\d+[mhd]$/.test(relative) ? `${relative} ago` : relative;
 }
 
 function MemberSheet({ member, onClose }: { member: MapMember | null; onClose: () => void }) {
@@ -431,17 +437,23 @@ function MemberSheet({ member, onClose }: { member: MapMember | null; onClose: (
       {member && (
         <>
           <div className={s.memberHead}>
-            <Avatar name={member.fullName} size={56} />
+            <Avatar name={member.fullName} photo={member.avatar} size={64} online={member.online} />
             <div>
               <p className={s.memberName}>{member.fullName}</p>
-              <p className={s.memberRole}>{ROLE_LABELS[member.role]}</p>
+              <p className={s.memberRole}>
+                {roleLabel(member.role)}
+                {member.online && <span className={s.onlineText}> · {t('Online')}</span>}
+              </p>
             </div>
           </div>
           <List>
-            <ListRow icon={<Car />} title="Car" value={member.car ?? '—'} />
-            <ListRow icon={<Clock />} title="Position shared" value={sharedAgo(member.updatedAt)} />
+            <ListRow icon={<Car />} title={t('Car')} value={member.car ?? '—'} />
+            <ListRow icon={<Clock />} title={t('Position shared')} value={timeAgo(member.updatedAt)} />
           </List>
-          <SectionFooter>Approximate position (± 500 m). Never share it outside the club.</SectionFooter>
+          <CarPhotoStrip photos={member.carPhotos} className={s.memberPhotos} />
+          <SectionFooter>
+            {t('Approximate position (about {meters} m). Never share it outside the club.', { meters: LOCATION_PRECISION_METERS })}
+          </SectionFooter>
         </>
       )}
     </Sheet>

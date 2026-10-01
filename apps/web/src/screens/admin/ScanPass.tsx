@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { CameraOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -43,13 +44,13 @@ export default function ScanPass() {
 
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError('This browser cannot open the camera. Use the phone camera app to scan the code instead.');
+        setError(t('This browser cannot open the camera. Use the phone camera app to scan the code instead.'));
         return;
       }
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
       } catch {
-        setError('Camera access was refused. Allow the camera for this site, or scan with the phone camera app.');
+        setError(t('Camera access was refused. Allow the camera for this site, or scan with the phone camera app.'));
         return;
       }
       const element = video.current;
@@ -101,8 +102,8 @@ export default function ScanPass() {
 
   return (
     <Screen>
-      <BackLink to="/admin">Admin</BackLink>
-      <LargeTitle>Scan a pass</LargeTitle>
+      <BackLink to="/admin">{t('Admin')}</BackLink>
+      <LargeTitle>{t('Scan a pass')}</LargeTitle>
       {error ? (
         <Notice tone="orange" icon={<CameraOff aria-hidden />}>
           {error}
@@ -110,10 +111,10 @@ export default function ScanPass() {
       ) : (
         <>
           <div className={s.scanner}>
-            <video ref={video} playsInline muted aria-label="Camera" />
+            <video ref={video} playsInline muted aria-label={t('Camera')} />
             <div className={s.frame} aria-hidden />
           </div>
-          <p className={s.scanHint}>Point the camera at the member&apos;s pass QR code.</p>
+          <p className={s.scanHint}>{t("Point the camera at the member's pass QR code.")}</p>
         </>
       )}
     </Screen>

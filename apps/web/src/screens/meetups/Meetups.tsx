@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { CalendarDays, Plus } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Card, EmptyState, ErrorState, LargeTitle, Loading, RoundButton, Screen, Segmented } from '../../components/ui';
@@ -19,23 +20,23 @@ export default function Meetups() {
       <LargeTitle
         accessory={
           canCreate && (
-            <RoundButton label="New meetup" to="/meetups/new">
+            <RoundButton label={t('New meetup')} to="/meetups/new">
               <Plus aria-hidden color="var(--blue)" strokeWidth={2.4} />
             </RoundButton>
           )
         }
       >
-        Meetups
+        {t('Meetups')}
       </LargeTitle>
 
       <Segmented
         className={s.segmented}
-        label="Meetups"
+        label={t('Meetups')}
         value={scope}
         onChange={(value) => setParams(value === 'past' ? { scope: 'past' } : {}, { replace: true })}
         options={[
-          { value: 'upcoming', label: 'Upcoming' },
-          { value: 'past', label: 'Past' },
+          { value: 'upcoming', label: t('Upcoming') },
+          { value: 'past', label: t('Past') },
         ]}
       />
 
@@ -45,8 +46,8 @@ export default function Meetups() {
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<CalendarDays />} title={scope === 'upcoming' ? 'Nothing planned yet' : 'No past meetups'}>
-            {scope === 'upcoming' ? 'You will be notified when the organizers plan a meetup.' : null}
+          <EmptyState icon={<CalendarDays />} title={scope === 'upcoming' ? t('Nothing planned yet') : t('No past meetups')}>
+            {scope === 'upcoming' ? t('You will be notified when the organizers plan a meetup.') : null}
           </EmptyState>
         </Card>
       ) : (

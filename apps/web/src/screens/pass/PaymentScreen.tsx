@@ -1,4 +1,4 @@
-import { formatMoney, PROOF_MAX_BYTES, type Membership, type PaymentKind, type PaymentMethod } from '@identity/shared';
+import { formatMoney, PROOF_MAX_BYTES, t, tn, type Membership, type PaymentKind, type PaymentMethod } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, CircleCheck, Clock, FileText, PartyPopper } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -24,6 +24,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { fieldErrors } from '../../lib/errors';
+import { clubText } from '../../lib/format';
 import { keys, useMembership } from '../../lib/queries';
 import s from './pass.module.css';
 
@@ -34,8 +35,8 @@ export default function PaymentScreen() {
 
   return (
     <Screen>
-      <BackLink to={joined ? '/home' : '/pass'}>{joined ? 'Home' : 'Membership'}</BackLink>
-      <LargeTitle>Payment</LargeTitle>
+      <BackLink to={joined ? '/home' : '/pass'}>{joined ? t('Home') : t('Membership')}</BackLink>
+      <LargeTitle>{t('Payment')}</LargeTitle>
       {isPending ? (
         <Loading />
       ) : error ? (
@@ -60,10 +61,10 @@ function PaymentContent({ membership, joined }: { membership: Membership; joined
     return (
       <div className={s.form}>
         <Notice tone="orange" icon={<Clock aria-hidden />}>
-          Your entry fee is awaiting the treasurer. You will be notified as soon as it is verified.
+          {t('Your entry fee is awaiting the treasurer. You will be notified as soon as it is verified.')}
         </Notice>
         <ButtonLink to="/pass" variant="secondary">
-          View my payments
+          {t('View my payments')}
         </ButtonLink>
       </div>
     );
@@ -71,7 +72,7 @@ function PaymentContent({ membership, joined }: { membership: Membership; joined
   if (!kind) {
     return (
       <Notice tone="gray" icon={<CircleCheck aria-hidden />}>
-        There is nothing to pay right now.
+        {t('There is nothing to pay right now.')}
       </Notice>
     );
   }
@@ -117,7 +118,7 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: keys.membership });
       toast(
-        method === 'proof' ? 'Proof sent. The treasurer will verify it.' : 'Noted. Pay the treasurer at the next meetup.',
+        method === 'proof' ? t('Proof sent. The treasurer will verify it.') : t('Noted. Pay the treasurer at the next meetup.'),
         'success',
       );
       navigate('/pass', { replace: true });
@@ -130,7 +131,7 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
     setFileError(null);
     if (!chosen) return;
     if (chosen.size > PROOF_MAX_BYTES) {
-      setFileError('This file is larger than 8 MB. Take a screenshot or a smaller photo instead.');
+      setFileError(t('This file is larger than 8 MB. Take a screenshot or a smaller photo instead.'));
       return;
     }
     setFile(chosen);
@@ -147,22 +148,22 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
     <form className={s.form} onSubmit={onSubmit} noValidate>
       {joined && (
         <Notice tone="green" icon={<PartyPopper aria-hidden />}>
-          Request sent! Next step: pay the entry fee. Your badge is issued once the treasurer confirms it.
+          {t('Request sent! Next step: pay the entry fee. Your badge is issued once the treasurer confirms it.')}
         </Notice>
       )}
 
-      <h2 className={s.section}>What you pay</h2>
+      <h2 className={s.section}>{t('What you pay')}</h2>
       {kind === 'entry_fee' ? (
         <List>
-          <ListRow title="Entry fee & badge" subtitle="One time" value={formatMoney(amount, currency)} />
+          <ListRow title={t('Entry fee & badge')} subtitle={t('One time')} value={formatMoney(amount, currency)} />
         </List>
       ) : (
         <List>
           {membership.duesOptions.map((o) => (
             <ListRow
               key={o.periods}
-              title={`${o.label} dues`}
-              subtitle={o.periods === 1 ? undefined : `${o.periods} periods`}
+              title={t('{period} dues', { period: o.label })}
+              subtitle={o.periods === 1 ? undefined : tn(o.periods, '{count} period', '{count} periods')}
               value={formatMoney(o.amount, currency)}
               onClick={() => setPeriods(o.periods)}
               trailing={
@@ -178,14 +179,14 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
         </List>
       )}
 
-      <h2 className={s.section}>How</h2>
+      <h2 className={s.section}>{t('How')}</h2>
       <Segmented
-        label="Payment method"
+        label={t('Payment method')}
         value={method}
         onChange={setMethod}
         options={[
-          { value: 'proof', label: 'Upload a proof' },
-          { value: 'in_person', label: 'Pay in person' },
+          { value: 'proof', label: t('Upload a proof') },
+          { value: 'in_person', label: t('Pay in person') },
         ]}
       />
 
@@ -203,24 +204,24 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
               <div className={s.thumb}>{preview ? <img src={preview} alt="" /> : <FileText aria-hidden />}</div>
               <p className={s.chosenName}>
                 {file.name}
-                <span className={s.chosenSize}>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                <span className={s.chosenSize}>{t('{size} MB', { size: (file.size / 1024 / 1024).toFixed(1) })}</span>
               </p>
               <Button variant="plain" onClick={() => fileInput.current?.click()}>
-                Change
+                {t('Change')}
               </Button>
             </div>
           ) : (
             <button type="button" className={s.upload} onClick={() => fileInput.current?.click()}>
               <Camera aria-hidden />
-              Add a photo or PDF
-              <span className={s.uploadHint}>Transfer receipt, D17 screenshot… max 8 MB</span>
+              {t('Add a photo or PDF')}
+              <span className={s.uploadHint}>{t('Transfer receipt, D17 screenshot… max 8 MB')}</span>
             </button>
           )}
           <FormList>
-            <FormRow label="Note" htmlFor="note">
+            <FormRow label={t('Note')} htmlFor="note">
               <Input
                 id="note"
-                placeholder="Reference (optional)"
+                placeholder={t('Reference (optional)')}
                 value={note}
                 maxLength={500}
                 onChange={(event) => setNote(event.target.value)}
@@ -231,17 +232,19 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
       ) : (
         <Card padded>
           <p className={s.instructions}>
-            Hand {formatMoney(amount, currency)} to the treasurer or an organizer, for example at the next meetup. They
-            confirm it in the app and you get notified.
+            {t(
+              'Hand {amount} to the treasurer or an organizer, for example at the next meetup. They confirm it in the app and you get notified.',
+              { amount: formatMoney(amount, currency) },
+            )}
           </p>
         </Card>
       )}
 
       {method === 'proof' && membership.paymentInstructions && (
         <>
-          <h2 className={s.section}>How to pay</h2>
+          <h2 className={s.section}>{t('How to pay')}</h2>
           <Card padded>
-            <p className={s.instructions}>{membership.paymentInstructions}</p>
+            <p className={s.instructions}>{clubText(membership.paymentInstructions)}</p>
           </Card>
         </>
       )}
@@ -250,7 +253,7 @@ function PaymentForm({ membership, kind, joined }: { membership: Membership; kin
       {submit.error && !hasFieldErrors && <ErrorState error={submit.error} />}
 
       <Button type="submit" loading={submit.isPending} disabled={!ready}>
-        {method === 'proof' ? `Send proof · ${formatMoney(amount, currency)}` : "I'll pay in person"}
+        {method === 'proof' ? t('Send proof · {amount}', { amount: formatMoney(amount, currency) }) : t("I'll pay in person")}
       </Button>
     </form>
   );

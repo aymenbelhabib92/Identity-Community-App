@@ -1,5 +1,5 @@
 import 'leaflet/dist/leaflet.css';
-import { DEFAULT_MAP_CENTER, type LatLng, type Place } from '@identity/shared';
+import { DEFAULT_MAP_CENTER, t, type LatLng, type Place } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import type { LeafletMouseEvent, Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
 import { LocateFixed, Search } from 'lucide-react';
@@ -11,7 +11,7 @@ import { useDebounced } from '../../lib/hooks';
 import { Button } from '../ui';
 import { pinIcon } from './markers';
 import s from './map.module.css';
-import { TILE_ATTRIBUTION, TILE_URL } from './tiles';
+import { TILE_ATTRIBUTION, useTileUrl } from './tiles';
 
 function ClickToPlace({ onPlace }: { onPlace: (point: LatLng) => void }) {
   useMapEvents({ click: (event: LeafletMouseEvent) => onPlace({ lat: event.latlng.lat, lng: event.latlng.lng }) });
@@ -29,6 +29,7 @@ export default function MapPicker({
   onPlaceFound?: (place: Place) => void;
 }) {
   const map = useRef<LeafletMap | null>(null);
+  const tileUrl = useTileUrl();
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export default function MapPicker({
       },
       () => {
         setLocating(false);
-        setLocateError('Could not get your position.');
+        setLocateError(t('Could not get your position.'));
       },
       { enableHighAccuracy: true, timeout: 15_000 },
     );
@@ -76,18 +77,18 @@ export default function MapPicker({
         <Search aria-hidden />
         <input
           type="search"
-          placeholder="Search a place or address"
+          placeholder={t('Search a place or address')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="Search a place"
+          aria-label={t('Search a place')}
         />
       </label>
 
       {debounced.length >= 3 && query && (
-        <div className={s.results} role="listbox" aria-label="Places">
-          {places.isPending && <p className={s.status}>Searching…</p>}
+        <div className={s.results} role="listbox" aria-label={t('Places')}>
+          {places.isPending && <p className={s.status}>{t('Searching…')}</p>}
           {places.error && <p className={s.status}>{errorMessage(places.error)}</p>}
-          {places.data?.items.length === 0 && <p className={s.status}>No place found.</p>}
+          {places.data?.items.length === 0 && <p className={s.status}>{t('No place found.')}</p>}
           {places.data?.items.map((place) => (
             <button
               key={`${place.lat},${place.lng}`}
@@ -106,7 +107,7 @@ export default function MapPicker({
 
       <div className={s.pickerMap}>
         <MapContainer ref={map} center={[center.lat, center.lng]} zoom={value ? 15 : 12} className={s.map} zoomControl>
-          <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+          <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} />
           <ClickToPlace onPlace={onChange} />
           {value && (
             <Marker
@@ -132,11 +133,11 @@ export default function MapPicker({
           loading={locating}
           onClick={useMyPosition}
         >
-          Use my position
+          {t('Use my position')}
         </Button>
         {value && (
           <Button variant="plain" onClick={() => onChange(null)}>
-            Remove pin
+            {t('Remove pin')}
           </Button>
         )}
       </div>

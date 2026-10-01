@@ -8,6 +8,7 @@ import SignIn from './screens/auth/SignIn';
 import Welcome from './screens/auth/Welcome';
 import Home from './screens/home/Home';
 import MeetupDetail from './screens/meetups/MeetupDetail';
+import Car from './screens/misc/Car';
 import Meetups from './screens/meetups/Meetups';
 import NotFound from './screens/misc/NotFound';
 import Notifications from './screens/misc/Notifications';
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
       { path: '/rules', element: <Rules /> },
       { path: '/notifications', element: <Notifications /> },
       { path: '/profile', element: <Profile /> },
+      { path: '/profile/car', element: <Car /> },
       { path: '/verify', element: <Verify /> },
       { path: '/admin', element: staff(<AdminHome />) },
       { path: '/admin/payments', element: staff(<AdminPayments />) },

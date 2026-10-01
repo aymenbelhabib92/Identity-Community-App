@@ -16,10 +16,15 @@ function cached(key: string, create: () => L.DivIcon): L.DivIcon {
   return icon;
 }
 
-/** Round avatar with initials ("KB"). */
-export const memberIcon = (label: string) =>
-  cached(`member:${label}`, () =>
-    L.divIcon({ className: s.member, html: escapeHtml(label), iconSize: [36, 36], iconAnchor: [18, 18] }),
+/** Round avatar: the member's photo (an object URL) or their initials ("KB"), with a green dot when online. */
+export const memberIcon = (label: string, photoUrl: string | null, online: boolean) =>
+  cached(`member:${photoUrl ?? label}:${online}`, () =>
+    L.divIcon({
+      className: online ? `${s.member} ${s.memberOnline}` : s.member!,
+      html: photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="" />` : escapeHtml(label),
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    }),
   );
 
 /** Several members close together ("+6"). */

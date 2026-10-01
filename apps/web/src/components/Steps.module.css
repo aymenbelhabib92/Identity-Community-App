@@ -36,14 +36,17 @@
 
 .current {
   background: var(--blue);
+  color: #fff;
 }
 
 .waiting {
   background: var(--orange);
+  color: #fff;
 }
 
 .done {
   background: var(--green);
+  color: #fff;
 }
 
 .body {

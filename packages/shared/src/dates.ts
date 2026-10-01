@@ -1,8 +1,25 @@
+import { getLanguage, translate, type Language } from './i18n';
+
 /** Calendar date without time zone, `YYYY-MM-DD`. */
 export type IsoDate = string;
 
-export const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
-export const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTHS: Record<Language, readonly string[]> = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
+};
+const WEEKDAYS: Record<Language, readonly string[]> = {
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  fr: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
+};
+
+/** "Oct" / "oct." for month 1–12. Like every formatter here, `lang` defaults to the app-wide language. */
+export function monthShort(month: number, lang: Language = getLanguage()): string {
+  return MONTHS[lang][month - 1]!;
+}
+
+function weekdayShort(weekday: number, lang: Language): string {
+  return WEEKDAYS[lang][weekday]!;
+}
 
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -79,9 +96,9 @@ export function todayIn(timeZone: string, now: Date = new Date()): IsoDate {
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** "Sat 03 Oct" */
-export function formatDayDate(date: Date | string, timeZone?: string): string {
+export function formatDayDate(date: Date | string, timeZone?: string, lang: Language = getLanguage()): string {
   const p = zonedParts(new Date(date), timeZone);
-  return `${WEEKDAYS_SHORT[p.weekday]} ${pad2(p.d)} ${MONTHS_SHORT[p.m - 1]}`;
+  return `${weekdayShort(p.weekday, lang)} ${pad2(p.d)} ${monthShort(p.m, lang)}`;
 }
 
 /** "22:00" */
@@ -91,39 +108,46 @@ export function formatTime(date: Date | string, timeZone?: string): string {
 }
 
 /** "Sat 03 Oct · 22:00" */
-export function formatDayDateTime(date: Date | string, timeZone?: string): string {
-  return `${formatDayDate(date, timeZone)} · ${formatTime(date, timeZone)}`;
+export function formatDayDateTime(date: Date | string, timeZone?: string, lang: Language = getLanguage()): string {
+  return `${formatDayDate(date, timeZone, lang)} · ${formatTime(date, timeZone)}`;
 }
 
 /** "SAT" / "03" pieces for calendar tiles. */
-export function calendarTile(date: Date | string, timeZone?: string): { weekday: string; day: string; month: string } {
+export function calendarTile(
+  date: Date | string,
+  timeZone?: string,
+  lang: Language = getLanguage(),
+): { weekday: string; day: string; month: string } {
   const p = zonedParts(new Date(date), timeZone);
-  return {
-    weekday: WEEKDAYS_SHORT[p.weekday]!.toUpperCase(),
-    day: pad2(p.d),
-    month: MONTHS_SHORT[p.m - 1]!.toUpperCase(),
-  };
+  const tile = (name: string) => name.replace('.', '').toUpperCase();
+  return { weekday: tile(weekdayShort(p.weekday, lang)), day: pad2(p.d), month: tile(monthShort(p.m, lang)) };
 }
 
 /** "31 Dec 2026" from a calendar date. */
-export function formatIsoDate(date: IsoDate): string {
+export function formatIsoDate(date: IsoDate, lang: Language = getLanguage()): string {
   const { y, m, d } = parseIsoDate(date);
-  return `${pad2(d)} ${MONTHS_SHORT[m - 1]} ${y}`;
+  return `${pad2(d)} ${monthShort(m, lang)} ${y}`;
 }
 
 /** Compact relative time used in feeds: "now", "5m", "2h", "Yesterday", "3d", "12 Sep". */
-export function formatRelative(date: Date | string, now: Date = new Date()): string {
+export function formatRelative(date: Date | string, now: Date = new Date(), lang: Language = getLanguage()): string {
   const then = new Date(date);
   const seconds = Math.round((now.getTime() - then.getTime()) / 1000);
-  if (seconds < 60) return 'now';
+  if (seconds < 60) return translate(lang, 'now');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return translate(lang, '{count}m', { count: minutes });
   const hours = Math.floor(minutes / 60);
   const a = zonedParts(then);
   const b = zonedParts(now);
   const dayDiff = Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000);
-  if (dayDiff === 0) return `${hours}h`;
-  if (dayDiff === 1) return 'Yesterday';
-  if (dayDiff < 7) return `${dayDiff}d`;
-  return a.y === b.y ? `${pad2(a.d)} ${MONTHS_SHORT[a.m - 1]}` : `${pad2(a.d)} ${MONTHS_SHORT[a.m - 1]} ${a.y}`;
+  if (dayDiff === 0) return translate(lang, '{count}h', { count: hours });
+  if (dayDiff === 1) return translate(lang, 'Yesterday');
+  if (dayDiff < 7) return translate(lang, '{count}d', { count: dayDiff });
+  const dayMonth = `${pad2(a.d)} ${monthShort(a.m, lang)}`;
+  return a.y === b.y ? dayMonth : `${dayMonth} ${a.y}`;
+}
+
+/** Whether `date` is within the last minute ("now" in feeds). */
+export function isJustNow(date: Date | string, now: Date = new Date()): boolean {
+  return now.getTime() - new Date(date).getTime() < 60_000;
 }

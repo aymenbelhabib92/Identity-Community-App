@@ -6,10 +6,12 @@ import {
   periodEnd,
   periodLabel,
   periodStartOf,
+  translate,
   yearlyDues,
   type ClubSettings,
   type DuesOption,
   type IsoDate,
+  type Language,
   type MemberRef,
   type Membership,
   type Payment,
@@ -20,13 +22,20 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { DbOrTx } from '../db/client';
 import { payments, users, type PaymentRow, type UserRow } from '../db/schema';
 import { conflict, fieldError } from '../errors';
-import { findUser, nextBadgeNumber, toUserDto } from './users';
+import type { Viewer } from '../types';
+import { findUser, memberRefColumns, nextBadgeNumber, toMemberRef, toUserDto } from './users';
 
 type PaymentPeriod = Pick<PaymentRow, 'kind' | 'periodStart' | 'periodMonths' | 'periodCount'>;
 
-export function paymentLabel(payment: PaymentPeriod): string {
-  if (payment.kind === 'entry_fee' || !payment.periodStart || !payment.periodMonths) return 'Entry fee & badge';
-  return `${periodLabel(payment.periodStart, payment.periodMonths, payment.periodCount ?? 1)} dues`;
+/** What the member sees and what `buildMembership` needs from the request. */
+type Context = Pick<Viewer, 'settings' | 'today' | 'now' | 'lang'>;
+
+export function paymentLabel(payment: PaymentPeriod, lang: Language): string {
+  if (payment.kind === 'entry_fee' || !payment.periodStart || !payment.periodMonths) {
+    return translate(lang, 'Entry fee & badge');
+  }
+  const period = periodLabel(payment.periodStart, payment.periodMonths, payment.periodCount ?? 1, lang);
+  return translate(lang, '{period} dues', { period });
 }
 
 export function paymentPeriodEnd(payment: PaymentPeriod): IsoDate | null {
@@ -34,11 +43,11 @@ export function paymentPeriodEnd(payment: PaymentPeriod): IsoDate | null {
   return periodEnd(payment.periodStart, payment.periodMonths, payment.periodCount ?? 1);
 }
 
-export function toPaymentDto(row: PaymentRow, reviewer: MemberRef | null): Payment {
+export function toPaymentDto(row: PaymentRow, reviewer: MemberRef | null, lang: Language): Payment {
   return {
     id: row.id,
     kind: row.kind,
-    label: paymentLabel(row),
+    label: paymentLabel(row, lang),
     amount: row.amount,
     method: row.method,
     status: row.status,
@@ -58,16 +67,12 @@ export const reviewers = alias(users, 'reviewer');
 
 /** Payments with the member who reviewed them, newest first. */
 export async function listPaymentsWithReviewer(db: DbOrTx, where: SQL | undefined) {
-  const rows = await db
-    .select({
-      payment: payments,
-      reviewer: { id: reviewers.id, fullName: reviewers.fullName, role: reviewers.role },
-    })
+  return db
+    .select({ payment: payments, reviewer: memberRefColumns(reviewers) })
     .from(payments)
     .leftJoin(reviewers, eq(payments.reviewedById, reviewers.id))
     .where(where)
     .orderBy(desc(payments.createdAt));
-  return rows.map((row) => ({ payment: row.payment, reviewer: row.reviewer as MemberRef | null }));
 }
 
 export function entryFeeStatus(user: UserRow, userPayments: PaymentRow[]): Membership['entryFeeStatus'] {
@@ -91,14 +96,14 @@ function canPayDues(user: UserRow): boolean {
   return user.status === 'active' && user.approvedAt !== null;
 }
 
-function duesOptions(settings: ClubSettings, covered: IsoDate | null, today: IsoDate): DuesOption[] {
+function duesOptions(settings: ClubSettings, covered: IsoDate | null, today: IsoDate, lang: Language): DuesOption[] {
   const months = settings.duesPeriodMonths;
   const start = nextDuesPeriodStart(covered, today, months);
   return Array.from({ length: maxPeriodsPerPayment(months) }, (_, index) => {
     const periods = index + 1;
     return {
       periods,
-      label: periodLabel(start, months, periods),
+      label: periodLabel(start, months, periods, lang),
       amount: settings.duesAmount * periods,
       periodStart: start,
       periodEnd: periodEnd(start, months, periods),
@@ -106,16 +111,12 @@ function duesOptions(settings: ClubSettings, covered: IsoDate | null, today: Iso
   });
 }
 
-export async function buildMembership(
-  db: DbOrTx,
-  user: UserRow,
-  settings: ClubSettings,
-  today: IsoDate,
-): Promise<Membership> {
+export async function buildMembership(db: DbOrTx, user: UserRow, context: Context): Promise<Membership> {
+  const { settings, today, now, lang } = context;
   const rows = await listPaymentsWithReviewer(db, eq(payments.userId, user.id));
   const userPayments = rows.map((row) => row.payment);
   return {
-    member: toUserDto(user, settings, today),
+    member: toUserDto(user, context),
     fees: {
       currency: settings.currency,
       entryFee: settings.entryFee,
@@ -124,8 +125,8 @@ export async function buildMembership(
       yearlyDues: yearlyDues(settings.duesAmount, settings.duesPeriodMonths),
     },
     entryFeeStatus: entryFeeStatus(user, userPayments),
-    duesOptions: canPayDues(user) ? duesOptions(settings, coveredUntil(user, userPayments), today) : [],
-    payments: rows.map((row) => toPaymentDto(row.payment, row.reviewer)),
+    duesOptions: canPayDues(user) ? duesOptions(settings, coveredUntil(user, userPayments), today, lang) : [],
+    payments: rows.map((row) => toPaymentDto(row.payment, toMemberRef(row.reviewer, now), lang)),
     paymentInstructions: settings.paymentInstructions,
   };
 }
@@ -165,7 +166,7 @@ export async function preparePayment(
   const months = settings.duesPeriodMonths;
   const periods = request.periods ?? 1;
   const max = maxPeriodsPerPayment(months);
-  if (periods > max) throw fieldError('periods', `Up to ${max} periods can be paid at once.`);
+  if (periods > max) throw fieldError('periods', 'Up to {max} periods can be paid at once.', { max });
   return {
     kind: 'dues',
     amount: settings.duesAmount * periods,

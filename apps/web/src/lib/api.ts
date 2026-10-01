@@ -1,4 +1,5 @@
 import { createApiClient } from '@identity/shared';
+import { currentLanguage } from './preferences';
 
 const TOKEN_KEY = 'identity.token';
 
@@ -32,6 +33,7 @@ export const SIGNED_OUT_EVENT = 'identity:signed-out';
 export const api = createApiClient({
   baseUrl: import.meta.env.VITE_API_URL || '/api/v1',
   getToken: () => tokenStore.get(),
+  getLanguage: currentLanguage,
   onUnauthorized: () => {
     tokenStore.set(null);
     window.dispatchEvent(new Event(SIGNED_OUT_EVENT));

@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { CircleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { errorMessage } from '../../lib/errors';
@@ -6,7 +7,7 @@ import { Button, type Tone } from './controls';
 import s from './ui.module.css';
 
 export function Spinner({ className }: { className?: string }) {
-  return <span className={cx(s.spinner, className)} role="status" aria-label="Loading" />;
+  return <span className={cx(s.spinner, className)} role="status" aria-label={t('Loading')} />;
 }
 
 export function Loading() {
@@ -36,7 +37,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       </div>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>
-          Try again
+          {t('Try again')}
         </Button>
       )}
     </div>

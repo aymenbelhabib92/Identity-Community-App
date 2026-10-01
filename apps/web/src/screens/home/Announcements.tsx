@@ -1,4 +1,4 @@
-import { formatRelative, ROLE_LABELS, type Announcement, type AnnouncementAudience } from '@identity/shared';
+import { formatRelative, t, type Announcement, type AnnouncementAudience } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Megaphone, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -16,14 +16,15 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useCan } from '../../lib/auth';
+import { roleLabel } from '../../lib/format';
 import { keys, useAnnouncements } from '../../lib/queries';
 import s from './home.module.css';
 
 function authorLabel(announcement: Announcement): string {
   const role = announcement.author?.role;
-  if (!role) return 'Club';
-  const label = role === 'organizer' ? 'Organizers' : ROLE_LABELS[role];
-  return announcement.audience === 'staff' ? `${label} · Staff only` : label;
+  if (!role) return t('Club');
+  const label = role === 'organizer' ? t('Organizers') : roleLabel(role);
+  return announcement.audience === 'staff' ? `${label} · ${t('Staff only')}` : label;
 }
 
 export function Announcements() {
@@ -37,13 +38,13 @@ export function Announcements() {
       <SectionTitle
         action={
           canPost && (
-            <button type="button" className={s.addButton} onClick={() => setComposing(true)} aria-label="New announcement">
+            <button type="button" className={s.addButton} onClick={() => setComposing(true)} aria-label={t('New announcement')}>
               <Plus strokeWidth={2.6} aria-hidden />
             </button>
           )
         }
       >
-        Announcements
+        {t('Announcements')}
       </SectionTitle>
 
       {isPending ? (
@@ -54,7 +55,7 @@ export function Announcements() {
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<Megaphone />}>News from the organizers will show up here.</EmptyState>
+          <EmptyState icon={<Megaphone />}>{t('News from the organizers will show up here.')}</EmptyState>
         </Card>
       ) : (
         <Card>
@@ -105,33 +106,33 @@ function Composer({ open, onClose }: { open: boolean; onClose: () => void }) {
       setBody('');
       setAudience('all');
       onClose();
-      toast('Announcement posted', 'success');
+      toast(t('Announcement posted'), 'success');
     },
   });
 
   return (
-    <Sheet open={open} onClose={onClose} title="New announcement">
+    <Sheet open={open} onClose={onClose} title={t('New announcement')}>
       <div className={s.composer}>
         <TextArea
-          aria-label="Message"
-          placeholder="Share news with the club…"
+          aria-label={t('Message')}
+          placeholder={t('Share news with the club…')}
           value={body}
           maxLength={1000}
           onChange={(event) => setBody(event.target.value)}
           autoFocus
         />
         <Segmented
-          label="Audience"
+          label={t('Audience')}
           value={audience}
           onChange={setAudience}
           options={[
-            { value: 'all', label: 'Everyone' },
-            { value: 'staff', label: 'Staff only' },
+            { value: 'all', label: t('Everyone') },
+            { value: 'staff', label: t('Staff only') },
           ]}
         />
         {post.error && <ErrorState error={post.error} />}
         <Button onClick={() => post.mutate()} loading={post.isPending} disabled={body.trim().length < 3}>
-          Post
+          {t('Post')}
         </Button>
       </div>
     </Sheet>
@@ -146,12 +147,12 @@ function DeleteSheet({ announcement, onClose }: { announcement: Announcement | n
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: keys.announcements });
       onClose();
-      toast('Announcement deleted', 'success');
+      toast(t('Announcement deleted'), 'success');
     },
   });
 
   return (
-    <Sheet open={announcement !== null} onClose={onClose} title="Announcement">
+    <Sheet open={announcement !== null} onClose={onClose} title={t('Announcement')}>
       {announcement && (
         <div className={s.composer}>
           <Card padded>
@@ -164,7 +165,7 @@ function DeleteSheet({ announcement, onClose }: { announcement: Announcement | n
             loading={remove.isPending}
             onClick={() => remove.mutate(announcement.id)}
           >
-            Delete announcement
+            {t('Delete announcement')}
           </Button>
         </div>
       )}

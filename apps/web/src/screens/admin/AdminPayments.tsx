@@ -1,4 +1,4 @@
-import { formatMoney, formatRelative, type AdminPayment } from '@identity/shared';
+import { formatMoney, formatRelative, t, type AdminPayment } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import { CircleCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -28,23 +28,23 @@ export default function AdminPayments() {
   const subtitle = (payment: AdminPayment) => {
     const parts = [`${payment.label} · ${formatMoney(payment.amount, currency)}`];
     if (payment.status === 'pending') {
-      parts.push(payment.method === 'proof' ? 'proof' : 'in person', formatRelative(payment.createdAt));
+      parts.push(payment.method === 'proof' ? t('proof') : t('in person'), formatRelative(payment.createdAt));
     }
     return parts.join(' · ');
   };
 
   return (
     <Screen>
-      <BackLink to="/admin">Admin</BackLink>
-      <LargeTitle>Payments</LargeTitle>
+      <BackLink to="/admin">{t('Admin')}</BackLink>
+      <LargeTitle>{t('Payments')}</LargeTitle>
       <Segmented
         className={s.segmented}
-        label="Payments"
+        label={t('Payments')}
         value={tab}
         onChange={(value) => setParams(value === 'all' ? { tab: 'history' } : {}, { replace: true })}
         options={[
-          { value: 'pending', label: 'To review' },
-          { value: 'all', label: 'History' },
+          { value: 'pending', label: t('To review') },
+          { value: 'all', label: t('History') },
         ]}
       />
       {payments.isPending ? (
@@ -53,8 +53,8 @@ export default function AdminPayments() {
         <ErrorState error={payments.error} onRetry={() => void payments.refetch()} />
       ) : payments.data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<CircleCheck />} title={tab === 'pending' ? 'All caught up' : 'No payments yet'}>
-            {tab === 'pending' ? 'New proofs and in-person payments to confirm will show up here.' : null}
+          <EmptyState icon={<CircleCheck />} title={tab === 'pending' ? t('All caught up') : t('No payments yet')}>
+            {tab === 'pending' ? t('New proofs and in-person payments to confirm will show up here.') : null}
           </EmptyState>
         </Card>
       ) : (

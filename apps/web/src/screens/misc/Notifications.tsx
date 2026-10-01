@@ -1,4 +1,4 @@
-import { formatRelative, type Notification, type NotificationList } from '@identity/shared';
+import { formatRelative, t, type Notification, type NotificationList } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CalendarDays, CreditCard, Megaphone, Shield, UserCheck, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -40,16 +40,16 @@ export default function Notifications() {
 
   return (
     <Screen>
-      <BackLink to="/home">Home</BackLink>
-      <LargeTitle>Notifications</LargeTitle>
+      <BackLink to="/home">{t('Home')}</BackLink>
+      <LargeTitle>{t('Notifications')}</LargeTitle>
       {isPending ? (
         <Loading />
       ) : error ? (
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<Bell />} title="All caught up">
-            Payments, meetups and club news will show up here.
+          <EmptyState icon={<Bell />} title={t('All caught up')}>
+            {t('Payments, meetups and club news will show up here.')}
           </EmptyState>
         </Card>
       ) : (

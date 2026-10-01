@@ -7,9 +7,9 @@ import {
   isStaff,
   listQuerySchema,
   okResponseSchema,
-  ROLE_LABELS,
   type Announcement,
   type AnnouncementAudience,
+  type Role,
 } from '@identity/shared';
 import { desc, eq, inArray } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -17,8 +17,15 @@ import { announcements, users, type AnnouncementRow } from '../db/schema';
 import { forbidden, notFound } from '../errors';
 import { requirePermission } from '../plugins/auth';
 import { notify } from '../services/notifications';
-import { audienceIds, toMemberRef } from '../services/users';
+import { audienceIds, memberRefColumns, toMemberRef, type MemberRefRow } from '../services/users';
 import type { Viewer } from '../types';
+
+const ANNOUNCEMENT_TITLES: Record<Role, string> = {
+  member: 'Announcement from the club',
+  organizer: 'Announcement from the organizers',
+  treasurer: 'Announcement from the treasurer',
+  admin: 'Announcement from the admin',
+};
 
 function visibleAudiences(viewer: Viewer): AnnouncementAudience[] {
   return viewer.hasAccess && isStaff(viewer.role) ? ['all', 'staff'] : ['all'];
@@ -30,12 +37,12 @@ function canDelete(row: AnnouncementRow, viewer: Viewer): boolean {
 }
 
 export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
-  function toDto(row: AnnouncementRow, author: Parameters<typeof toMemberRef>[0], viewer: Viewer): Announcement {
+  function toDto(row: AnnouncementRow, author: MemberRefRow | null, viewer: Viewer): Announcement {
     return {
       id: row.id,
       body: row.body,
       audience: row.audience,
-      author: toMemberRef(author),
+      author: toMemberRef(author, viewer.now),
       canDelete: canDelete(row, viewer),
       createdAt: row.createdAt.toISOString(),
     };
@@ -54,7 +61,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { viewer } = request;
       const rows = await app.db
-        .select({ announcement: announcements, author: { id: users.id, fullName: users.fullName, role: users.role } })
+        .select({ announcement: announcements, author: memberRefColumns(users) })
         .from(announcements)
         .leftJoin(users, eq(announcements.authorId, users.id))
         .where(inArray(announcements.audience, visibleAudiences(viewer)))
@@ -90,12 +97,12 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
         viewer.id,
       );
       const excerpt = row!.body.length > 140 ? `${row!.body.slice(0, 137)}…` : row!.body;
-      await notify(app.db, recipients, {
+      await notify(app.db, recipients, (tr) => ({
         kind: 'announcement',
-        title: `Announcement from ${viewer.role === 'organizer' ? 'the organizers' : ROLE_LABELS[viewer.role]}`,
+        title: tr(ANNOUNCEMENT_TITLES[viewer.role]),
         body: excerpt,
         link: '/home',
-      });
+      }));
 
       reply.code(201);
       return toDto(row!, viewer.user, viewer);

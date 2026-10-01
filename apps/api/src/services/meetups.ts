@@ -11,7 +11,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { DbOrTx } from '../db/client';
 import { meetupRsvps, meetups, users, type MeetupRow } from '../db/schema';
 import type { Viewer } from '../types';
-import type { AudienceMember } from './users';
+import { memberRefColumns, toMemberRef, type AudienceMember } from './users';
 
 const HOUR = 3_600_000;
 
@@ -95,7 +95,7 @@ export async function toMeetupDtos(db: DbOrTx, viewer: Viewer, rows: MeetupRow[]
       .from(meetupRsvps)
       .where(and(eq(meetupRsvps.userId, viewer.id), inArray(meetupRsvps.meetupId, ids))),
     hostIds.length
-      ? db.select({ id: users.id, fullName: users.fullName, role: users.role }).from(users).where(inArray(users.id, hostIds))
+      ? db.select(memberRefColumns(users)).from(users).where(inArray(users.id, hostIds))
       : Promise.resolve([]),
   ]);
 
@@ -120,7 +120,7 @@ export async function toMeetupDtos(db: DbOrTx, viewer: Viewer, rows: MeetupRow[]
         location === 'visible' ? { name: row.locationName, address: row.address, lat: row.lat, lng: row.lng } : null,
       locationStatus: location,
       rules: row.rules,
-      host: (row.hostId && hostBy.get(row.hostId)) || null,
+      host: toMemberRef(row.hostId ? hostBy.get(row.hostId) : null, viewer.now),
       goingCount: countBy.get(row.id) ?? 0,
       going: isGoing,
       canEdit: canEditMeetup(row, viewer),

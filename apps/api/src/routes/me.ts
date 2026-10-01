@@ -17,7 +17,7 @@ import type { Db } from '../db/client';
 import { memberLocations, users } from '../db/schema';
 import { AppError, conflict, fieldError } from '../errors';
 import { hashPassword, verifyPassword } from '../lib/password';
-import { buildViewer, requireAccess, signAccessToken } from '../plugins/auth';
+import { requireAccess, signAccessToken } from '../plugins/auth';
 import { findUser, toUserDto } from '../services/users';
 
 async function myLocation(db: Db, userId: string, sharing: boolean): Promise<MyLocation> {
@@ -35,10 +35,7 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/me',
     { schema: { tags: ['me'], summary: 'Current member', response: { 200: userSchema } } },
-    async (request) => {
-      const { viewer } = request;
-      return toUserDto(viewer.user, viewer.settings, viewer.today);
-    },
+    async (request) => toUserDto(request.viewer.user, request.viewer),
   );
 
   app.patch(
@@ -46,16 +43,17 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
     { schema: { tags: ['me'], summary: 'Update profile', body: updateMeBodySchema, response: { 200: userSchema } } },
     async (request) => {
       const { viewer } = request;
-      const { fullName, car } = request.body;
+      const { fullName, car, language } = request.body;
       const [user] = await app.db
         .update(users)
         .set({
           ...(fullName !== undefined && { fullName }),
           ...(car !== undefined && { car: car || null }),
+          ...(language !== undefined && { language }),
         })
         .where(eq(users.id, viewer.id))
         .returning();
-      return toUserDto(user!, viewer.settings, viewer.today);
+      return toUserDto(user!, viewer);
     },
   );
 
@@ -84,8 +82,7 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .where(eq(users.id, viewer.id))
         .returning();
-      const next = await buildViewer(app, user!);
-      return { token: signAccessToken(app, user!), user: toUserDto(user!, next.settings, next.today) };
+      return { token: signAccessToken(app, user!), user: toUserDto(user!, viewer) };
     },
   );
 
@@ -144,7 +141,7 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['map'],
         summary: 'Update my position',
-        description: 'The position is snapped to a ~500 m grid before it is stored; the exact point is never kept.',
+        description: 'The position is snapped to a ~100 m grid before it is stored; the exact point is never kept.',
         body: locationUpdateSchema,
         response: { 200: myLocationSchema },
       },

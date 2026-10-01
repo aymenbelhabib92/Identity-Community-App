@@ -1,7 +1,9 @@
 import {
   DUES_PERIOD_MONTHS,
+  duesFrequencyLabel,
   moneyToInput,
   parseMoney,
+  t,
   type ClubSettings,
   type ClubSettingsUpdate,
 } from '@identity/shared';
@@ -32,15 +34,6 @@ import { fieldErrors } from '../../lib/errors';
 import { keys } from '../../lib/queries';
 import s from './admin.module.css';
 
-const PERIOD_LABELS: Record<number, string> = {
-  1: 'Every month',
-  2: 'Every 2 months',
-  3: 'Every 3 months',
-  4: 'Every 4 months',
-  6: 'Every 6 months',
-  12: 'Every year',
-};
-
 export default function AdminSettings() {
   const canManage = useCan('settings:manage');
   const settings = useQuery({ queryKey: keys.clubSettings, queryFn: api.admin.settings, enabled: canManage });
@@ -48,8 +41,8 @@ export default function AdminSettings() {
   if (!canManage) return <Navigate to="/admin" replace />;
   return (
     <Screen>
-      <BackLink to="/admin">Admin</BackLink>
-      <LargeTitle>Club settings</LargeTitle>
+      <BackLink to="/admin">{t('Admin')}</BackLink>
+      <LargeTitle>{t('Club settings')}</LargeTitle>
       {settings.isPending ? (
         <Loading />
       ) : settings.error ? (
@@ -78,7 +71,7 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
       queryClient.setQueryData(keys.clubSettings, updated);
       void queryClient.invalidateQueries({ queryKey: keys.clubInfo });
       void queryClient.invalidateQueries({ queryKey: keys.membership });
-      toast('Settings saved', 'success');
+      toast(t('Settings saved'), 'success');
     },
   });
   const errors = { ...fieldErrors(save.error), ...localErrors };
@@ -88,8 +81,8 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
     const entryFee = parseMoney(form.entryFeeText);
     const duesAmount = parseMoney(form.duesAmountText);
     const nextErrors: Record<string, string> = {};
-    if (entryFee === null) nextErrors.entryFee = 'Entry fee: enter an amount such as 20 or 7.5';
-    if (duesAmount === null) nextErrors.duesAmount = 'Dues: enter an amount such as 5 or 7.5';
+    if (entryFee === null) nextErrors.entryFee = t('Entry fee: enter an amount such as 20 or 7.5');
+    if (duesAmount === null) nextErrors.duesAmount = t('Dues: enter an amount such as 5 or 7.5');
     setLocalErrors(nextErrors);
     if (entryFee === null || duesAmount === null) return;
     save.mutate({
@@ -111,9 +104,9 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
 
   return (
     <form className={s.sheetStack} onSubmit={submit} noValidate>
-      <h2 className={s.formSection}>Fees</h2>
+      <h2 className={s.formSection}>{t('Fees')}</h2>
       <FormList>
-        <FormRow label="Entry fee" htmlFor="entryFee" suffix={form.currency} invalid={Boolean(errors.entryFee)}>
+        <FormRow label={t('Entry fee')} htmlFor="entryFee" suffix={form.currency} invalid={Boolean(errors.entryFee)}>
           <Input
             id="entryFee"
             inputMode="decimal"
@@ -121,7 +114,7 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
             onChange={(event) => set('entryFeeText', event.target.value)}
           />
         </FormRow>
-        <FormRow label="Dues" htmlFor="duesAmount" suffix={form.currency} invalid={Boolean(errors.duesAmount)}>
+        <FormRow label={t('Dues')} htmlFor="duesAmount" suffix={form.currency} invalid={Boolean(errors.duesAmount)}>
           <Input
             id="duesAmount"
             inputMode="decimal"
@@ -129,7 +122,7 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
             onChange={(event) => set('duesAmountText', event.target.value)}
           />
         </FormRow>
-        <FormRow label="Dues period" htmlFor="duesPeriod">
+        <FormRow label={t('Dues period')} htmlFor="duesPeriod">
           <Select
             id="duesPeriod"
             value={form.duesPeriodMonths}
@@ -137,15 +130,15 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
           >
             {DUES_PERIOD_MONTHS.map((months) => (
               <option key={months} value={months}>
-                {PERIOD_LABELS[months]}
+                {duesFrequencyLabel(months)}
               </option>
             ))}
           </Select>
         </FormRow>
-        <FormRow label="Currency" htmlFor="currency">
+        <FormRow label={t('Currency')} htmlFor="currency">
           <Input id="currency" value={form.currency} maxLength={8} onChange={(event) => set('currency', event.target.value)} />
         </FormRow>
-        <FormRow label="Grace period" htmlFor="grace" suffix="days">
+        <FormRow label={t('Grace period')} htmlFor="grace" suffix={t('days')}>
           <Input
             id="grace"
             inputMode="numeric"
@@ -156,24 +149,25 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
       </FormList>
       <List>
         <ListRow
-          title="Entry fee covers the first period"
+          title={t('Entry fee covers the first period')}
           trailing={
             <Toggle
               checked={form.entryFeeCoversFirstPeriod}
               onChange={(checked) => set('entryFeeCoversFirstPeriod', checked)}
-              label="Entry fee covers the first period"
+              label={t('Entry fee covers the first period')}
             />
           }
         />
       </List>
       <p className={s.help}>
-        Periods follow the calendar (with 3 months: Q1 Jan–Mar, Q2 Apr–Jun…). New amounts apply to payments submitted from
-        now on. Members keep access during the grace period after their dues end.
+        {t(
+          'Periods follow the calendar (with 3 months: Q1 Jan–Mar, Q2 Apr–Jun…). New amounts apply to payments submitted from now on. Members keep access during the grace period after their dues end.',
+        )}
       </p>
 
-      <h2 className={s.formSection}>Meetups & map</h2>
+      <h2 className={s.formSection}>{t('Meetups & map')}</h2>
       <FormList>
-        <FormRow label="Reveal spot" htmlFor="reveal" suffix="h before start">
+        <FormRow label={t('Reveal spot')} htmlFor="reveal" suffix={t('h before start')}>
           <Input
             id="reveal"
             inputMode="numeric"
@@ -181,7 +175,7 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
             onChange={(event) => set('revealHoursBefore', Math.min(72, int(event.target.value)))}
           />
         </FormRow>
-        <FormRow label="Map positions" htmlFor="ttl" suffix="hours max">
+        <FormRow label={t('Map positions')} htmlFor="ttl" suffix={t('hours max')}>
           <Input
             id="ttl"
             inputMode="numeric"
@@ -191,37 +185,40 @@ function SettingsForm({ initial }: { initial: ClubSettings }) {
         </FormRow>
       </FormList>
 
-      <h2 className={s.formSection}>How to pay</h2>
+      <h2 className={s.formSection}>{t('How to pay')}</h2>
       <TextArea
-        aria-label="Payment instructions"
+        aria-label={t('Payment instructions')}
         value={form.paymentInstructions}
         maxLength={2000}
         onChange={(event) => set('paymentInstructions', event.target.value)}
       />
-      <p className={s.help}>Shown when members upload a proof: bank account, D17 number, who to pay in person…</p>
+      <p className={s.help}>{t('Shown when members upload a proof: bank account, D17 number, who to pay in person…')}</p>
 
-      <h2 className={s.formSection}>Club rules</h2>
+      <h2 className={s.formSection}>{t('Club rules')}</h2>
       <TextArea
         className={s.tall}
-        aria-label="Club rules"
+        aria-label={t('Club rules')}
         value={form.clubRules}
         maxLength={20000}
         onChange={(event) => set('clubRules', event.target.value)}
       />
-      <p className={s.help}>Start a section with “# Title” and each rule with “- ”.</p>
+      <p className={s.help}>{t('Start a section with “# Title” and each rule with “- ”.')}</p>
 
-      <h2 className={s.formSection}>Default meet rules</h2>
+      <h2 className={s.formSection}>{t('Default meet rules')}</h2>
       <TextArea
-        aria-label="Default meet rules"
+        aria-label={t('Default meet rules')}
         value={form.meetRules}
         maxLength={2000}
         onChange={(event) => set('meetRules', event.target.value)}
       />
+      <p className={s.help}>
+        {t('These three texts are shown as you write them. While you leave them unchanged, members see them in their own language.')}
+      </p>
 
       <FieldErrors errors={Object.values(errors)} />
       {save.error && Object.keys(fieldErrors(save.error)).length === 0 && <ErrorState error={save.error} />}
       <Button type="submit" loading={save.isPending}>
-        Save settings
+        {t('Save settings')}
       </Button>
     </form>
   );

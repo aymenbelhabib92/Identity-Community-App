@@ -1,5 +1,7 @@
+import { t } from '@identity/shared';
 import type { ReactNode } from 'react';
 import { BackLink, ErrorState, LargeTitle, List, ListRow, Loading, Screen, SectionHeader } from '../../components/ui';
+import { clubText } from '../../lib/format';
 import { useClubSettings } from '../../lib/queries';
 import s from './misc.module.css';
 
@@ -42,7 +44,7 @@ export default function Rules() {
   else {
     content = (
       <div className={s.rules}>
-        {parseRules(data.clubRules).map((block, index) =>
+        {parseRules(clubText(data.clubRules)).map((block, index) =>
           block.kind === 'text' ? (
             <p key={index} className={s.paragraph}>
               {block.text}
@@ -64,8 +66,8 @@ export default function Rules() {
 
   return (
     <Screen>
-      <BackLink to="/home">Home</BackLink>
-      <LargeTitle>Club rules</LargeTitle>
+      <BackLink to="/home">{t('Home')}</BackLink>
+      <LargeTitle>{t('Club rules')}</LargeTitle>
       {content}
     </Screen>
   );

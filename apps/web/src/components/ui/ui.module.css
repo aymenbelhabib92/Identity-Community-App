@@ -229,21 +229,56 @@
   background: var(--red);
 }
 .gray {
-  background: #8e8e93;
+  background: var(--gray);
 }
 .purple {
   background: var(--purple);
 }
 
 .avatar {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: var(--surface-2);
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
   letter-spacing: 0.3px;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Membership state: a ring around the photo. */
+.ring {
+  outline: 2px solid var(--gray);
+  outline-offset: 2px;
+}
+.ringGreen {
+  outline-color: var(--green);
+}
+.ringOrange {
+  outline-color: var(--orange);
+}
+.ringRed {
+  outline-color: var(--red);
+}
+
+/* Online: a green dot at the bottom right. */
+.online {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: clamp(11px, 24%, 20px);
+  aspect-ratio: 1;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--green);
 }
 
 /* ─── Buttons ─────────────────────────────────────────────────────────────── */
@@ -286,17 +321,17 @@
 
 .secondary {
   background: var(--surface);
-  color: #fff;
+  color: var(--text);
 }
 
 .success {
-  background: #0e2a17;
-  color: var(--green);
+  background: var(--tint-green);
+  color: var(--green-text);
 }
 
 .danger {
   background: var(--tint-red);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .plain {
@@ -326,7 +361,7 @@
   height: 44px;
   border-radius: 50%;
   background: var(--surface);
-  color: #fff;
+  color: var(--text);
 }
 
 .roundButton svg {
@@ -358,7 +393,7 @@
   gap: 2px;
   padding: 2px;
   border-radius: 9px;
-  background: var(--surface);
+  background: var(--segment-track);
 }
 
 .segment {
@@ -366,12 +401,12 @@
   border-radius: 7px;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
   transition: background 0.2s;
 }
 
 .segmentActive {
-  background: #636366;
+  background: var(--segment-active);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
@@ -413,24 +448,24 @@
 }
 
 .toneRed {
-  background: rgba(255, 69, 58, 0.22);
-  color: #ff6961;
+  background: var(--tint-red);
+  color: var(--red-text);
 }
 .toneBlue {
-  background: rgba(10, 132, 255, 0.22);
-  color: #409cff;
+  background: var(--tint-blue);
+  color: var(--blue-text);
 }
 .toneOrange {
-  background: rgba(255, 159, 10, 0.22);
-  color: #ffb340;
+  background: var(--tint-orange);
+  color: var(--orange-text);
 }
 .toneGreen {
-  background: rgba(48, 209, 88, 0.2);
-  color: var(--green);
+  background: var(--tint-green);
+  color: var(--green-text);
 }
 .toneGray {
-  background: rgba(142, 142, 147, 0.24);
-  color: #aeaeb2;
+  background: var(--tint-gray);
+  color: var(--gray-text);
 }
 
 .textGreen {
@@ -585,7 +620,7 @@ select.formInput option {
 .spinner {
   width: 22px;
   height: 22px;
-  border: 2.5px solid rgba(255, 255, 255, 0.18);
+  border: 2.5px solid var(--spinner-track);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -627,7 +662,7 @@ select.formInput option {
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--tint-red);
-  color: #ff8a80;
+  color: var(--red-text);
   font-size: 15px;
   line-height: 1.4;
 }
@@ -665,22 +700,23 @@ select.formInput option {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--backdrop);
   animation: fade 0.2s ease;
 }
 
 .sheet {
-  --surface: #2c2c2e;
-  --surface-2: #3a3a3c;
-  --surface-3: #48484a;
+  --surface: var(--sheet-surface);
+  --surface-2: var(--sheet-surface-2);
+  --surface-3: var(--sheet-surface-3);
+  --segment-track: var(--segment-track-sheet);
   width: 100%;
-  max-width: var(--app-max-width);
+  max-width: var(--overlay-max-width);
   max-height: 92dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 8px var(--page-x) calc(24px + var(--safe-bottom));
   border-radius: 16px 16px 0 0;
-  background: #1c1c1e;
+  background: var(--sheet-bg);
   animation: slide-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
@@ -689,7 +725,7 @@ select.formInput option {
   height: 5px;
   margin: 0 auto 12px;
   border-radius: 3px;
-  background: #48484a;
+  background: var(--surface-3);
 }
 
 .sheetHeader {
@@ -711,7 +747,7 @@ select.formInput option {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #3a3a3c;
+  background: var(--surface-2);
   color: var(--text-2);
 }
 
@@ -744,8 +780,8 @@ select.formInput option {
   max-width: 440px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: rgba(44, 44, 46, 0.97);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  background: var(--floating-2);
+  box-shadow: 0 10px 30px var(--shadow);
   font-size: 15px;
   line-height: 1.35;
   animation: toast-in 0.25s ease;

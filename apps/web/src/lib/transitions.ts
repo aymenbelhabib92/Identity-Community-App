@@ -13,9 +13,9 @@ type Router = ReturnType<typeof createBrowserRouter>;
  */
 export type ScreenTransition = 'push' | 'pop' | 'tab' | 'fade' | 'none';
 
-const TAB_ROOTS = ['/home', '/map', '/meetups', '/pass'];
+const TAB_ROOTS = ['/home', '/map', '/meetups'];
 /** Screens reached from the Home tab (they keep it highlighted in the tab bar). */
-const HOME_SECTIONS = ['/notifications', '/profile', '/rules', '/admin', '/verify'];
+const HOME_SECTIONS = ['/notifications', '/profile', '/pass', '/rules', '/admin', '/verify'];
 const AUTH_FLOW = ['/welcome', '/signin', '/join'];
 
 const within = (path: string, section: string) => path === section || path.startsWith(`${section}/`);
@@ -25,10 +25,13 @@ function tabOf(path: string): string {
   return TAB_ROOTS.find((root) => within(path, root)) ?? path;
 }
 
-/** Tab roots are level 0; every path segment below goes one level deeper. */
+/**
+ * Tab roots are level 0; every path segment below goes one level deeper. The
+ * pass is opened from the account screen (/profile), so it sits one level below it.
+ */
 function depth(path: string): number {
   if (TAB_ROOTS.includes(path)) return 0;
-  return path.split('/').filter(Boolean).length;
+  return path.split('/').filter(Boolean).length + (within(path, '/pass') ? 1 : 0);
 }
 
 export function transitionFor(from: string, to: string): ScreenTransition {

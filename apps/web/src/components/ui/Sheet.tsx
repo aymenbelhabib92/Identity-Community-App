@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -51,7 +52,7 @@ export function Sheet({
         {title && (
           <div className={s.sheetHeader}>
             <h2 className={s.sheetTitle}>{title}</h2>
-            <button type="button" className={s.sheetClose} onClick={onClose} aria-label="Close">
+            <button type="button" className={s.sheetClose} onClick={onClose} aria-label={t('Close')}>
               <X aria-hidden strokeWidth={2.6} />
             </button>
           </div>

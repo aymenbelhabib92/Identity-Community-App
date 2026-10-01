@@ -1,4 +1,4 @@
-import type { ClubSettings, IsoDate, MembershipState, Role } from '@identity/shared';
+import type { ClubSettings, IsoDate, Language, MembershipState, Role } from '@identity/shared';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import type { UserRow } from './db/schema';
@@ -16,6 +16,8 @@ export interface Viewer {
   /** Today in the club time zone. */
   today: IsoDate;
   now: Date;
+  /** Language of this request (labels in responses). */
+  lang: Language;
 }
 
 export interface Clock {
@@ -45,6 +47,8 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     viewer: Viewer;
+    /** From Accept-Language: error messages and labels are answered in it. */
+    lang: Language;
   }
 }
 

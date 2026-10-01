@@ -4,14 +4,15 @@
   left: 50%;
   z-index: 500;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   width: 100%;
   max-width: var(--app-max-width);
   height: var(--tabbar-height);
   padding-bottom: var(--safe-bottom);
   transform: translateX(-50%);
-  border-top: 0.5px solid rgba(84, 84, 88, 0.45);
-  background: rgba(22, 22, 24, 0.94);
+  border-top: 0.5px solid var(--chrome-border);
+  background: var(--chrome);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   /* Stays in place while screens slide (global.css, screen transitions). */
@@ -24,7 +25,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #8e8e93;
+  color: var(--gray);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.1px;

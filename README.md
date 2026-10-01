@@ -10,13 +10,18 @@ same routes.
 | Area | What members get | What staff get |
 | --- | --- | --- |
 | **Membership** | Join request, entry fee (20 DT) and dues (5 DT / 3 months) by proof upload or in person, payment history, validity date | Review queue with the proof, verify / reject with a note, record cash payments, approve founding members, suspend, temporary passwords |
-| **Pass** | Card with badge number, role, validity; QR code refreshed every few minutes | In-app scanner (or phone camera) → "Valid member" / "Not valid" |
-| **Map** | Opt-in location sharing, snapped to a ~500 m grid, visible to active members only, clusters, member & place search | — |
+| **Pass** | Card with badge number, role, validity; QR code refreshed every few minutes, one tap away on the home banner | In-app scanner (or phone camera) → "Valid member" / "Not valid", with the member's photo |
+| **Profile** | Profile photo, car and up to 4 car photos, green dot when online, ring in the colour of the membership | Photos on member lists, payments and pass checks |
+| **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
 | **Club** | Announcements, club rules, notifications | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
+| **Preferences** | English or French (the phone's language by default, remembered on the account), dark / light / automatic theme | — |
 
 Roles: **member**, **organizer** (meetups, announcements, pass checks), **treasurer** (payments),
 **admin** (everything, roles, settings).
+
+Navigation: three tabs (Home, Map, Meetups). The avatar at the top right of Home opens the
+**account** screen: pass and membership, profile, car, language, theme, password, admin tools.
 
 ## Architecture
 
@@ -38,6 +43,13 @@ docker/       Caddyfile (web server + HTTPS + /api proxy)
   engine, embedded) — no database to install. Migrations (`apps/api/drizzle`) apply on start.
 - **Money** is stored in millimes (1 DT = 1000) — `7.500 DT` stays exact.
 - **Time zone:** dues periods and "today" are computed in `Africa/Tunis`.
+- **Languages:** English texts are the keys (`t('Sign in')`), French lives in two dictionaries:
+  `packages/shared/src/locales/fr.ts` (labels, API messages, notifications) and
+  `apps/web/src/locales/fr.ts` (screens). A missing key falls back to English. The API answers in
+  the language of the request (`Accept-Language`) and writes each notification in its recipient's
+  language.
+- **Themes:** every colour is a CSS variable in `apps/web/src/styles/global.css`; the light palette
+  overrides them under `data-theme="light"`.
 
 ## Getting started (development)
 
@@ -98,9 +110,16 @@ Run the API tests against a real PostgreSQL server with
 
 ## Privacy and security
 
-- **Location:** positions are snapped server-side to a ~500 m grid before being stored — the exact
-  point is never kept. Sharing is opt-in, turning it off deletes the position, stale positions
-  disappear (24 h by default), and only active members can see the map.
+- **Location:** positions are snapped server-side to a ~100 m grid before being stored — the exact
+  point is never kept (`LOCATION_PRECISION_METERS` in `packages/shared/src/geo.ts`). Sharing is
+  opt-in, turning it off deletes the position, stale positions disappear (24 h by default), and
+  only active members can see the map.
+- **Photos:** the app resizes pictures before upload, which also drops their metadata (such as
+  where they were taken). They are served to signed-in accounts only: profile photos to every
+  account, car photos to active members. The server checks files by content (JPG, PNG, WEBP, 5 MB
+  max).
+- **Presence:** "online" means the app talked to the server in the last 5 minutes. Other members
+  see that green dot; the membership state of a member is shown to staff only.
 - **Secret meetups:** the API never sends the meeting point before the reveal time, and only to
   members who confirmed (plus staff). Members without an active membership do not see secret
   meetups at all.
@@ -123,14 +142,16 @@ docker compose up -d --build
 - Point the domain's DNS to the server first: Caddy then obtains the HTTPS certificate by itself.
 - The first admin (`ADMIN_PHONE` / `ADMIN_PASSWORD`) is created on first start.
 - Demo data (optional): `docker compose exec api node dist/db/seed.js --force`.
-- Back up the `pgdata` (database) and `uploads` (payment proofs) volumes, e.g.
+- Back up the `pgdata` (database) and `uploads` (payment proofs, member photos) volumes, e.g.
   `docker compose exec db pg_dump -U identity identity > backup.sql`.
+- Update: `git pull && docker compose up -d --build` (database migrations apply on start).
 
 ## Maps
 
-The map uses Leaflet with **Stadia Maps "Alidade Smooth Dark"** (OpenStreetMap data): free and
-keyless on localhost; in production, create a free Stadia account and register the domain (or set
-`VITE_MAP_TILE_URL` to another provider). Place search goes through the API to OpenStreetMap
+The map uses Leaflet with **Stadia Maps "Alidade Smooth"** (OpenStreetMap data), dark or light to
+match the theme: free and keyless on localhost; in production, create a free Stadia account and
+register the domain (or set `VITE_MAP_TILE_URL` to another provider, then used for both themes).
+Place search goes through the API to OpenStreetMap
 Nominatim. Moving to **Google Maps** later only touches `apps/web/src/components/map/` and
 `apps/api/src/routes/geo.ts`.
 

@@ -1,4 +1,5 @@
-import { addDays, MONTHS_SHORT, parseIsoDate, toIsoDate, type IsoDate } from './dates';
+import { addDays, monthShort, parseIsoDate, toIsoDate, type IsoDate } from './dates';
+import { getLanguage, translate, type Language } from './i18n';
 
 /**
  * Dues are paid per period. Periods are calendar-aligned blocks of N months
@@ -27,33 +28,36 @@ export function periodEnd(start: IsoDate, months: number, count = 1): IsoDate {
   return addDays(addPeriods(start, months, count), -1);
 }
 
-function singlePeriodLabel(start: IsoDate, months: number): string {
+function singlePeriodLabel(start: IsoDate, months: number, lang: Language): string {
   const { y, m } = parseIsoDate(start);
   switch (months) {
     case 12:
       return String(y);
     case 6:
-      return `H${Math.floor((m - 1) / 6) + 1} ${y}`;
+      // Half-year / semestre
+      return `${lang === 'fr' ? 'S' : 'H'}${Math.floor((m - 1) / 6) + 1} ${y}`;
     case 3:
-      return `Q${Math.floor((m - 1) / 3) + 1} ${y}`;
+      // Quarter / trimestre
+      return `${lang === 'fr' ? 'T' : 'Q'}${Math.floor((m - 1) / 3) + 1} ${y}`;
     case 1:
-      return `${MONTHS_SHORT[m - 1]} ${y}`;
+      return `${monthShort(m, lang)} ${y}`;
     default:
-      return `${MONTHS_SHORT[m - 1]}–${MONTHS_SHORT[m + months - 2]} ${y}`;
+      return `${monthShort(m, lang)}–${monthShort(m + months - 1, lang)} ${y}`;
   }
 }
 
 /** "Q4 2026", or "Q4 2026 – Q3 2027" when several periods are paid at once. */
-export function periodLabel(start: IsoDate, months: number, count = 1): string {
-  if (count <= 1) return singlePeriodLabel(start, months);
-  return `${singlePeriodLabel(start, months)} – ${singlePeriodLabel(addPeriods(start, months, count - 1), months)}`;
+export function periodLabel(start: IsoDate, months: number, count = 1, lang: Language = getLanguage()): string {
+  if (count <= 1) return singlePeriodLabel(start, months, lang);
+  const last = singlePeriodLabel(addPeriods(start, months, count - 1), months, lang);
+  return `${singlePeriodLabel(start, months, lang)} – ${last}`;
 }
 
 /** "Every 3 months" */
-export function duesFrequencyLabel(months: number): string {
-  if (months === 1) return 'Every month';
-  if (months === 12) return 'Every year';
-  return `Every ${months} months`;
+export function duesFrequencyLabel(months: number, lang: Language = getLanguage()): string {
+  if (months === 1) return translate(lang, 'Every month');
+  if (months === 12) return translate(lang, 'Every year');
+  return translate(lang, 'Every {months} months', { months });
 }
 
 export function yearlyDues(duesAmount: number, months: number): number {

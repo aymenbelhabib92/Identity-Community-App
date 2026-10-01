@@ -3,9 +3,16 @@
 }
 
 .list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
+}
+
+/* Wide screens: meetups side by side. */
+@media (min-width: 760px) {
+  .list {
+    grid-template-columns: repeat(2, 1fr);
+    align-items: start;
+  }
 }
 
 .card {
@@ -170,7 +177,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(28, 28, 30, 0.92);
+  background: var(--floating);
   backdrop-filter: blur(10px);
   font-size: 15px;
 }
@@ -198,6 +205,17 @@
   margin: 6px 0 18px;
   font-size: 15px;
   color: var(--text-2);
+}
+
+.hostRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 18px;
+}
+
+.hostRow .host {
+  margin: 0;
 }
 
 .blocks {

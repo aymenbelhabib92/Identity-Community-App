@@ -1,4 +1,4 @@
-import { formatMoney, formatPhone, type User } from '@identity/shared';
+import { formatMoney, formatPhone, t, type User } from '@identity/shared';
 import { CircleAlert, Wallet } from 'lucide-react';
 import { Steps, type StepItem } from '../../components/Steps';
 import { ButtonLink, Card, IconTile, Notice } from '../../components/ui';
@@ -14,7 +14,7 @@ export function MembershipAlert({ user }: { user: User }) {
     return (
       <div className={s.pendingSteps}>
         <Notice tone="red" icon={<CircleAlert aria-hidden />}>
-          Your membership is suspended. Contact an admin for details.
+          {t('Your membership is suspended. Contact an admin for details.')}
         </Notice>
       </div>
     );
@@ -23,7 +23,7 @@ export function MembershipAlert({ user }: { user: User }) {
     return (
       <div className={s.pendingSteps}>
         <Notice tone="gray" icon={<CircleAlert aria-hidden />}>
-          Your membership request was not approved. Contact the club for details.
+          {t('Your membership request was not approved. Contact the club for details.')}
         </Notice>
       </div>
     );
@@ -34,20 +34,20 @@ export function MembershipAlert({ user }: { user: User }) {
     const fee = formatMoney(membership.fees.entryFee, membership.fees.currency);
     const paying = membership.entryFeeStatus === 'pending';
     const steps: StepItem[] = [
-      { title: 'Account created', text: formatPhone(user.phone), state: 'done' },
+      { title: t('Account created'), text: formatPhone(user.phone), state: 'done' },
       paying
-        ? { title: 'Entry fee sent', text: 'Awaiting the treasurer', state: 'waiting' }
+        ? { title: t('Entry fee sent'), text: t('Awaiting the treasurer'), state: 'waiting' }
         : {
-            title: `Pay the entry fee · ${fee}`,
-            text: 'Upload a payment proof or pay in person',
+            title: t('Pay the entry fee · {amount}', { amount: fee }),
+            text: t('Upload a payment proof or pay in person'),
             state: 'current',
             action: (
               <ButtonLink to="/pass/pay" size="small">
-                Pay entry fee
+                {t('Pay entry fee')}
               </ButtonLink>
             ),
           },
-      { title: 'Get verified & receive your badge', text: 'Then the member map and secret meetups open' },
+      { title: t('Get verified & receive your badge'), text: t('Then the member map and secret meetups open') },
     ];
     return <Steps steps={steps} className={s.pendingSteps} />;
   }
@@ -60,13 +60,13 @@ export function MembershipAlert({ user }: { user: User }) {
         <Wallet />
       </IconTile>
       <div className={s.alertBody}>
-        <p className={s.alertTitle}>{expired ? 'Membership expired' : 'Dues due'}</p>
+        <p className={s.alertTitle}>{expired ? t('Membership expired') : t('Dues due')}</p>
         <p className={s.alertText}>
-          {next ? `${next.label} · ${formatMoney(next.amount, membership.fees.currency)}` : 'Pay your dues to keep access'}
+          {next ? `${next.label} · ${formatMoney(next.amount, membership.fees.currency)}` : t('Pay your dues to keep access')}
         </p>
       </div>
       <ButtonLink to="/pass/pay" size="small">
-        Pay
+        {t('Pay')}
       </ButtonLink>
     </Card>
   );

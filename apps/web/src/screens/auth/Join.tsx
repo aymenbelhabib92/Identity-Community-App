@@ -1,4 +1,4 @@
-import { duesFrequencyLabel, formatMoney } from '@identity/shared';
+import { duesFrequencyLabel, formatMoney, t } from '@identity/shared';
 import { useMutation } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
@@ -40,7 +40,10 @@ export default function Join() {
 
   const entryFee = club ? formatMoney(club.entryFee, club.currency) : '…';
   const dues = club
-    ? `Then ${formatMoney(club.duesAmount, club.currency)} ${duesFrequencyLabel(club.duesPeriodMonths).toLowerCase()}`
+    ? t('Then {amount} {frequency}', {
+        amount: formatMoney(club.duesAmount, club.currency),
+        frequency: duesFrequencyLabel(club.duesPeriodMonths).toLowerCase(),
+      })
     : '';
 
   const submit = (event: FormEvent) => {
@@ -51,33 +54,33 @@ export default function Join() {
   return (
     <div className="app-frame">
       <main className={s.page}>
-        <BackLink to="/signin">Sign in</BackLink>
-        <LargeTitle>Join Identity</LargeTitle>
-        <Lead>Membership is validated by the club. Your badge is issued once your entry fee is confirmed.</Lead>
+        <BackLink to="/signin">{t('Sign in')}</BackLink>
+        <LargeTitle>{t('Join Identity')}</LargeTitle>
+        <Lead>{t('Membership is validated by the club. Your badge is issued once your entry fee is confirmed.')}</Lead>
 
         <Steps
           className={s.steps}
           steps={[
-            { title: 'Create your account', text: 'Name, phone, your car', state: 'current' },
-            { title: `Pay the entry fee · ${entryFee}`, text: 'Upload a payment proof or pay in person' },
-            { title: 'Get verified & receive your badge', text: dues },
+            { title: t('Create your account'), text: t('Name, phone, your car'), state: 'current' },
+            { title: t('Pay the entry fee · {amount}', { amount: entryFee }), text: t('Upload a payment proof or pay in person') },
+            { title: t('Get verified & receive your badge'), text: dues },
           ]}
         />
 
         <form className={s.form} onSubmit={submit} noValidate>
           <div>
             <FormList>
-              <FormRow label="Full name" htmlFor="fullName" invalid={Boolean(errors.fullName)}>
+              <FormRow label={t('Full name')} htmlFor="fullName" invalid={Boolean(errors.fullName)}>
                 <Input
                   id="fullName"
                   autoComplete="name"
-                  placeholder="Required"
+                  placeholder={t('Required')}
                   value={form.fullName}
                   onChange={set('fullName')}
                   required
                 />
               </FormRow>
-              <FormRow label="Phone" htmlFor="phone" invalid={Boolean(errors.phone)}>
+              <FormRow label={t('Phone')} htmlFor="phone" invalid={Boolean(errors.phone)}>
                 <Input
                   id="phone"
                   type="tel"
@@ -89,15 +92,15 @@ export default function Join() {
                   required
                 />
               </FormRow>
-              <FormRow label="Car" htmlFor="car" invalid={Boolean(errors.car)}>
-                <Input id="car" placeholder="Make, model, year" value={form.car} onChange={set('car')} />
+              <FormRow label={t('Car')} htmlFor="car" invalid={Boolean(errors.car)}>
+                <Input id="car" placeholder={t('Make, model, year')} value={form.car} onChange={set('car')} />
               </FormRow>
-              <FormRow label="Password" htmlFor="password" invalid={Boolean(errors.password)}>
+              <FormRow label={t('Password')} htmlFor="password" invalid={Boolean(errors.password)}>
                 <Input
                   id="password"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="8 characters min."
+                  placeholder={t('8 characters min.')}
                   value={form.password}
                   onChange={set('password')}
                   required
@@ -108,11 +111,10 @@ export default function Join() {
           </div>
           {register.error && !hasFieldErrors && <ErrorState error={register.error} />}
           <Button type="submit" loading={register.isPending}>
-            Submit request
+            {t('Submit request')}
           </Button>
         </form>
       </main>
     </div>
   );
 }
-

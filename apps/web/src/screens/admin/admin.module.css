@@ -106,7 +106,7 @@
 
 .chipActive {
   background: var(--text);
-  color: #000;
+  color: var(--bg);
 }
 
 .memberHead {
@@ -134,6 +134,10 @@
 
 .memberMeta a {
   color: var(--blue);
+}
+
+.carPhotos {
+  margin-top: 10px;
 }
 
 .sheetStack {

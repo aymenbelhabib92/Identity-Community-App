@@ -1,4 +1,4 @@
-import { can, todayIn, type Permission } from '@identity/shared';
+import { can, DEFAULT_LANGUAGE, todayIn, type Language, type Permission } from '@identity/shared';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { users, type UserRow } from '../db/schema';
@@ -6,16 +6,19 @@ import { AppError, forbidden, unauthorized } from '../errors';
 import { stateOf } from '../services/users';
 import type { AccessTokenPayload, PassTokenPayload, Viewer } from '../types';
 
+/** How often a member's "last seen" time is written. */
+const LAST_SEEN_STEP_MS = 60_000;
+
 export function signAccessToken(app: FastifyInstance, user: Pick<UserRow, 'id' | 'tokenVersion'>): string {
   const payload: AccessTokenPayload = { sub: user.id, tv: user.tokenVersion, typ: 'access' };
   return app.jwt.sign(payload, { expiresIn: app.config.tokenTtl });
 }
 
-export async function buildViewer(app: FastifyInstance, user: UserRow): Promise<Viewer> {
+export async function buildViewer(app: FastifyInstance, user: UserRow, lang: Language = DEFAULT_LANGUAGE): Promise<Viewer> {
   const settings = await app.clubSettings.get();
   const now = app.clock.now();
   const today = todayIn(app.config.timezone, now);
-  return { id: user.id, user, role: user.role, ...stateOf(user, settings, today), settings, today, now };
+  return { id: user.id, user, role: user.role, ...stateOf(user, settings, today), settings, today, now, lang };
 }
 
 /** onRequest hook: resolves the bearer token to `request.viewer`. */
@@ -33,7 +36,14 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
   if (!user || user.tokenVersion !== payload.tv) {
     throw unauthorized('Your session has ended. Please sign in again.');
   }
-  request.viewer = await buildViewer(app, user);
+
+  // Presence: other members see who used the app in the last few minutes.
+  const now = app.clock.now();
+  if (!user.lastSeenAt || now.getTime() - user.lastSeenAt.getTime() >= LAST_SEEN_STEP_MS) {
+    await app.db.update(users).set({ lastSeenAt: now, updatedAt: user.updatedAt }).where(eq(users.id, user.id));
+    user.lastSeenAt = now;
+  }
+  request.viewer = await buildViewer(app, user, request.lang);
 }
 
 /** Map, secret meetups and other member-only features. */

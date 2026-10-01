@@ -22,10 +22,7 @@ import {
   updateMemberBodySchema,
   type AdminMember,
   type AdminPayment,
-  type ClubSettings,
-  type IsoDate,
   type MemberFilter,
-  type MemberRef,
 } from '@identity/shared';
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -44,7 +41,8 @@ import {
   toPaymentDto,
 } from '../services/membership';
 import { notify } from '../services/notifications';
-import { findUser, stateOf, toMemberRef, toUserDto } from '../services/users';
+import { findUser, memberRefColumns, stateOf, toMemberRef, toUserDto, type MemberRefRow } from '../services/users';
+import type { Viewer } from '../types';
 
 function matchesFilter(member: AdminMember, filter: MemberFilter): boolean {
   switch (filter) {
@@ -66,47 +64,33 @@ async function pendingPaymentCounts(db: DbOrTx, userId?: string): Promise<Map<st
   return new Map(rows.map((row) => [row.userId, Number(row.count)]));
 }
 
-async function toAdminMember(db: DbOrTx, user: UserRow, settings: ClubSettings, today: IsoDate): Promise<AdminMember> {
+async function toAdminMember(db: DbOrTx, user: UserRow, viewer: Viewer): Promise<AdminMember> {
   const counts = await pendingPaymentCounts(db, user.id);
-  return { ...toUserDto(user, settings, today), pendingPayments: counts.get(user.id) ?? 0 };
+  return { ...toUserDto(user, viewer), pendingPayments: counts.get(user.id) ?? 0 };
 }
 
-async function loadAdminPayment(
-  db: DbOrTx,
-  paymentId: string,
-  settings: ClubSettings,
-  today: IsoDate,
-): Promise<AdminPayment | null> {
+async function loadAdminPayment(db: DbOrTx, paymentId: string, viewer: Viewer): Promise<AdminPayment | null> {
   const [row] = await db
-    .select({
-      payment: payments,
-      member: users,
-      reviewer: { id: reviewers.id, fullName: reviewers.fullName, role: reviewers.role },
-    })
+    .select({ payment: payments, member: users, reviewer: memberRefColumns(reviewers) })
     .from(payments)
     .innerJoin(users, eq(payments.userId, users.id))
     .leftJoin(reviewers, eq(payments.reviewedById, reviewers.id))
     .where(eq(payments.id, paymentId))
     .limit(1);
   if (!row) return null;
-  return toAdminPayment(row.payment, row.member, row.reviewer, settings, today);
+  return toAdminPayment(row.payment, row.member, row.reviewer, viewer);
 }
 
-function toAdminPayment(
-  payment: PaymentRow,
-  member: UserRow,
-  reviewer: MemberRef | null,
-  settings: ClubSettings,
-  today: IsoDate,
-): AdminPayment {
+function toAdminPayment(payment: PaymentRow, member: UserRow, reviewer: MemberRefRow | null, viewer: Viewer): AdminPayment {
   return {
-    ...toPaymentDto(payment, reviewer),
+    ...toPaymentDto(payment, toMemberRef(reviewer, viewer.now), viewer.lang),
     member: {
       id: member.id,
       fullName: member.fullName,
       phone: member.phone,
+      avatar: member.avatarPhotoId,
       badgeNumber: member.badgeNumber,
-      state: stateOf(member, settings, today).state,
+      state: stateOf(member, viewer.settings, viewer.today).state,
     },
   };
 }
@@ -167,22 +151,14 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       const { viewer } = request;
       const { status, limit } = request.query;
       const rows = await app.db
-        .select({
-          payment: payments,
-          member: users,
-          reviewer: { id: reviewers.id, fullName: reviewers.fullName, role: reviewers.role },
-        })
+        .select({ payment: payments, member: users, reviewer: memberRefColumns(reviewers) })
         .from(payments)
         .innerJoin(users, eq(payments.userId, users.id))
         .leftJoin(reviewers, eq(payments.reviewedById, reviewers.id))
         .where(status === 'all' ? undefined : eq(payments.status, status))
         .orderBy(status === 'pending' ? asc(payments.createdAt) : desc(payments.createdAt))
         .limit(limit);
-      return {
-        items: rows.map((row) =>
-          toAdminPayment(row.payment, row.member, row.reviewer as MemberRef | null, viewer.settings, viewer.today),
-        ),
-      };
+      return { items: rows.map((row) => toAdminPayment(row.payment, row.member, row.reviewer, viewer)) };
     },
   );
 
@@ -227,31 +203,35 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       });
 
       const member = await findUser(app.db, payment.userId);
-      const label = paymentLabel(payment);
-      if (decision === 'reject') {
-        await notify(app.db, [payment.userId], {
+      await notify(app.db, [payment.userId], (tr, lang) => {
+        const label = paymentLabel(payment, lang);
+        if (decision === 'reject') {
+          return {
+            kind: 'payment',
+            title: tr('Payment not accepted'),
+            body: `${label} · ${note || tr('Contact the treasurer for details.')}`,
+            link: '/pass',
+          };
+        }
+        if (payment.kind === 'entry_fee') {
+          return {
+            kind: 'membership',
+            title: tr('Welcome to Identity'),
+            body: tr('Your membership is active. Badge {badge}.', { badge: formatBadgeNumber(member?.badgeNumber) }),
+            link: '/pass',
+          };
+        }
+        return {
           kind: 'payment',
-          title: 'Payment not accepted',
-          body: note ? `${label} · ${note}` : `${label} · Contact the treasurer for details.`,
+          title: tr('Payment verified'),
+          body: member?.paidUntil
+            ? tr('{label} · valid until {date}', { label, date: formatIsoDate(member.paidUntil, lang) })
+            : label,
           link: '/pass',
-        });
-      } else if (payment.kind === 'entry_fee') {
-        await notify(app.db, [payment.userId], {
-          kind: 'membership',
-          title: 'Welcome to Identity',
-          body: `Your membership is active. Badge ${formatBadgeNumber(member?.badgeNumber)}.`,
-          link: '/pass',
-        });
-      } else {
-        await notify(app.db, [payment.userId], {
-          kind: 'payment',
-          title: 'Payment verified',
-          body: member?.paidUntil ? `${label} · valid until ${formatIsoDate(member.paidUntil)}` : label,
-          link: '/pass',
-        });
-      }
+        };
+      });
 
-      return (await loadAdminPayment(app.db, payment.id, viewer.settings, viewer.today))!;
+      return (await loadAdminPayment(app.db, payment.id, viewer))!;
     },
   );
 
@@ -280,7 +260,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       const rows = await app.db.select().from(users).where(where).orderBy(asc(users.fullName));
       const counts = await pendingPaymentCounts(app.db);
       const items = rows
-        .map((user) => ({ ...toUserDto(user, viewer.settings, viewer.today), pendingPayments: counts.get(user.id) ?? 0 }))
+        .map((user) => ({ ...toUserDto(user, viewer), pendingPayments: counts.get(user.id) ?? 0 }))
         .filter((member) => matchesFilter(member, filter))
         .sort((a, b) => Number(b.state === 'pending') - Number(a.state === 'pending'));
       return { items };
@@ -302,7 +282,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       const { viewer } = request;
       const member = await findUser(app.db, request.params.id);
       if (!member) throw notFound('Member');
-      return buildMembership(app.db, member, viewer.settings, viewer.today);
+      return buildMembership(app.db, member, viewer);
     },
   );
 
@@ -361,27 +341,31 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const updated = (await findUser(app.db, target.id))!;
       if (roleChanged) {
-        await notify(app.db, [target.id], {
+        await notify(app.db, [target.id], (tr) => ({
           kind: 'role',
-          title: `You are now ${ROLE_LABELS[updated.role]}`,
-          body: isStaff(updated.role) ? 'New tools are available in the Admin section of your profile.' : null,
+          title: tr('You are now {role}', { role: tr(ROLE_LABELS[updated.role]) }),
+          body: isStaff(updated.role) ? tr('New tools are available in the Admin section of your profile.') : null,
           link: '/profile',
+        }));
+      }
+      if (statusChanged && updated.status !== 'pending') {
+        const status = updated.status;
+        await notify(app.db, [target.id], (tr) => {
+          const messages = {
+            active: target.approvedAt
+              ? { title: tr('Membership reactivated'), body: null }
+              : {
+                  title: tr('Welcome to Identity'),
+                  body: tr('Your membership is active. Badge {badge}.', { badge: formatBadgeNumber(updated.badgeNumber) }),
+                },
+            suspended: { title: tr('Membership suspended'), body: tr('Contact an admin for details.') },
+            rejected: { title: tr('Membership request declined'), body: tr('Contact the club for details.') },
+          };
+          return { kind: 'membership', ...messages[status], link: '/pass' };
         });
       }
-      if (statusChanged) {
-        const messages = {
-          active: target.approvedAt
-            ? { title: 'Membership reactivated', body: null }
-            : { title: 'Welcome to Identity', body: `Your membership is active. Badge ${formatBadgeNumber(updated.badgeNumber)}.` },
-          suspended: { title: 'Membership suspended', body: 'Contact an admin for details.' },
-          rejected: { title: 'Membership request declined', body: 'Contact the club for details.' },
-          pending: null,
-        } as const;
-        const message = messages[updated.status];
-        if (message) await notify(app.db, [target.id], { kind: 'membership', ...message, link: '/pass' });
-      }
 
-      return toAdminMember(app.db, updated, viewer.settings, viewer.today);
+      return toAdminMember(app.db, updated, viewer);
     },
   );
 
@@ -421,18 +405,21 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       });
 
       const member = await findUser(app.db, target.id);
-      await notify(app.db, [target.id], {
+      await notify(app.db, [target.id], (tr, lang) => ({
         kind: payment.kind === 'entry_fee' ? 'membership' : 'payment',
-        title: payment.kind === 'entry_fee' ? 'Welcome to Identity' : 'Payment recorded',
+        title: tr(payment.kind === 'entry_fee' ? 'Welcome to Identity' : 'Payment recorded'),
         body:
           payment.kind === 'entry_fee'
-            ? `Your membership is active. Badge ${formatBadgeNumber(member?.badgeNumber)}.`
-            : `${paymentLabel(payment)} · ${formatMoney(payment.amount, viewer.settings.currency)} paid in person`,
+            ? tr('Your membership is active. Badge {badge}.', { badge: formatBadgeNumber(member?.badgeNumber) })
+            : tr('{label} · {amount} paid in person', {
+                label: paymentLabel(payment, lang),
+                amount: formatMoney(payment.amount, viewer.settings.currency),
+              }),
         link: '/pass',
-      });
+      }));
 
       reply.code(201);
-      return toPaymentDto(payment, toMemberRef(viewer.user));
+      return toPaymentDto(payment, toMemberRef(viewer.user, viewer.now), viewer.lang);
     },
   );
 

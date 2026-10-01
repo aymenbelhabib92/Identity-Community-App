@@ -1,4 +1,4 @@
-import { formatBadgeNumber, type Payment } from '@identity/shared';
+import { formatBadgeNumber, t, type Payment } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import s from './admin.module.css';
 
 export interface ReviewTarget {
   payment: Payment;
-  member: { id: string; fullName: string; badgeNumber: number | null };
+  member: { id: string; fullName: string; avatar: string | null; badgeNumber: number | null };
 }
 
 /** Payment details with Verify / Reject for the treasurer. */
@@ -28,7 +28,7 @@ export function ReviewSheet({ target, onClose }: { target: ReviewTarget | null; 
       api.admin.reviewPayment(target!.payment.id, { decision, note: note.trim() || undefined }),
     onSuccess: (payment) => {
       void queryClient.invalidateQueries({ queryKey: keys.admin });
-      toast(payment.status === 'verified' ? 'Payment verified. The member is notified.' : 'Payment rejected', 'success');
+      toast(payment.status === 'verified' ? t('Payment verified. The member is notified.') : t('Payment rejected'), 'success');
       onClose();
     },
   });
@@ -41,13 +41,13 @@ export function ReviewSheet({ target, onClose }: { target: ReviewTarget | null; 
       {target && payment && (
         <div className={s.sheetStack}>
           <Link to={`/admin/members/${target.member.id}`} className={s.reviewMember} onClick={onClose}>
-            <Avatar name={target.member.fullName} size={40} />
+            <Avatar name={target.member.fullName} photo={target.member.avatar} size={40} />
             <div>
               <p>{target.member.fullName}</p>
               <p className={s.text}>
                 {target.member.badgeNumber !== null
-                  ? `Badge ${formatBadgeNumber(target.member.badgeNumber)}`
-                  : 'Membership request'}
+                  ? t('Badge {badge}', { badge: formatBadgeNumber(target.member.badgeNumber) })
+                  : t('Membership request')}
               </p>
             </div>
           </Link>
@@ -55,8 +55,8 @@ export function ReviewSheet({ target, onClose }: { target: ReviewTarget | null; 
           {pending && (
             <>
               <TextArea
-                aria-label="Note to the member"
-                placeholder="Note to the member (optional, e.g. why it is rejected)"
+                aria-label={t('Note to the member')}
+                placeholder={t('Note to the member (optional, e.g. why it is rejected)')}
                 value={note}
                 maxLength={500}
                 onChange={(event) => setNote(event.target.value)}
@@ -71,7 +71,7 @@ export function ReviewSheet({ target, onClose }: { target: ReviewTarget | null; 
                   disabled={review.isPending}
                   onClick={() => review.mutate('reject')}
                 >
-                  Reject
+                  {t('Reject')}
                 </Button>
                 <Button
                   variant="success"
@@ -80,7 +80,7 @@ export function ReviewSheet({ target, onClose }: { target: ReviewTarget | null; 
                   disabled={review.isPending}
                   onClick={() => review.mutate('verify')}
                 >
-                  {payment.method === 'in_person' ? 'Received' : 'Verify'}
+                  {payment.method === 'in_person' ? t('Received') : t('Verify')}
                 </Button>
               </div>
             </>

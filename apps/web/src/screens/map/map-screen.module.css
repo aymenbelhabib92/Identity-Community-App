@@ -16,7 +16,7 @@
 
 .top {
   position: absolute;
-  top: calc(max(56px, calc(var(--safe-top) + 12px)) + var(--banner-space));
+  top: var(--screen-top);
   right: var(--page-x);
   left: var(--page-x);
   z-index: 600;
@@ -32,9 +32,10 @@
   height: 46px;
   padding: 0 14px;
   border-radius: 12px;
-  background: rgba(44, 44, 46, 0.92);
+  background: var(--floating-2);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 14px var(--shadow);
   color: var(--text-2);
 }
 
@@ -64,8 +65,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #636366;
-  color: #1c1c1e;
+  background: var(--gray);
+  color: var(--surface);
 }
 
 .clear svg {
@@ -74,17 +75,18 @@
 }
 
 .segmented {
-  background: rgba(28, 28, 30, 0.92);
+  background: var(--segment-track-floating);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 14px var(--shadow);
 }
 
 .results {
   max-height: 46dvh;
   overflow-y: auto;
   border-radius: 14px;
-  background: rgba(28, 28, 30, 0.97);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  background: var(--floating);
+  box-shadow: 0 12px 30px var(--shadow);
 }
 
 .resultsTitle {
@@ -113,10 +115,10 @@
 .card {
   padding: 14px 16px;
   border-radius: 20px;
-  background: rgba(28, 28, 30, 0.96);
+  background: var(--floating);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 30px var(--shadow);
 }
 
 .shareRow {
@@ -183,8 +185,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(28, 28, 30, 0.94);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  background: var(--floating);
+  box-shadow: 0 6px 18px var(--shadow);
   color: var(--blue);
 }
 
@@ -209,4 +211,12 @@
   margin-top: 2px;
   font-size: 15px;
   color: var(--text-2);
+}
+
+.onlineText {
+  color: var(--green-text);
+}
+
+.memberPhotos {
+  margin-top: 12px;
 }

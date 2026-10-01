@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, formatDayDateTime, formatIsoDate, formatRelative, todayIn } from './dates';
-import { approximateLocation, distanceMeters } from './geo';
+import { DEFAULT_CLUB_RULES } from './defaults';
+import { approximateLocation, distanceMeters, LOCATION_PRECISION_METERS } from './geo';
+import { pickLanguage, translate, translatePlural } from './i18n';
 import { hasMemberAccess, membershipState } from './membership';
 import { formatMoney, parseMoney } from './money';
 import { formatPhone, initials, normalizePhone, shortName } from './people';
@@ -125,10 +127,48 @@ describe('geo', () => {
   it('snaps positions within the advertised precision and keeps them stable', () => {
     const home = { lat: 36.8412, lng: 10.2311 };
     const approx = approximateLocation(home);
-    expect(distanceMeters(home, approx)).toBeLessThan(500);
+    expect(distanceMeters(home, approx)).toBeLessThan(LOCATION_PRECISION_METERS);
     // Snapping is idempotent, and moving around inside the cell does not move the published point.
     expect(approximateLocation(approx)).toEqual(approx);
-    expect(approximateLocation({ lat: approx.lat + 0.001, lng: approx.lng - 0.001 })).toEqual(approx);
+    expect(approximateLocation({ lat: approx.lat + 0.0003, lng: approx.lng - 0.0003 })).toEqual(approx);
+    // The next cell is a different published point.
+    expect(approximateLocation({ lat: approx.lat + 0.001, lng: approx.lng })).not.toEqual(approx);
+  });
+});
+
+describe('translations', () => {
+  it('falls back to English and fills placeholders', () => {
+    expect(translate('en', 'Up to {max} periods can be paid at once.', { max: 4 })).toBe('Up to 4 periods can be paid at once.');
+    expect(translate('fr', 'Up to {max} periods can be paid at once.', { max: 4 })).toBe(
+      "Jusqu'à 4 périodes peuvent être payées en une fois.",
+    );
+    expect(translate('fr', 'A text nobody translated')).toBe('A text nobody translated');
+  });
+
+  it('counts the French way: zero is singular', () => {
+    expect(translatePlural('en', 0, '{count} member', '{count} members')).toBe('0 members');
+    expect(translatePlural('fr', 0, '{count} member', '{count} members')).toBe('0 member');
+    expect(translatePlural('fr', 2, '{count} member', '{count} members')).toBe('2 members');
+  });
+
+  it('reads the language of a browser or an Accept-Language header', () => {
+    expect(pickLanguage('fr-FR,fr;q=0.9,en;q=0.8')).toBe('fr');
+    expect(pickLanguage('en-GB')).toBe('en');
+    expect(pickLanguage('ar-TN')).toBeNull();
+    expect(pickLanguage(undefined)).toBeNull();
+  });
+
+  it('formats dates and dues periods in French', () => {
+    expect(formatIsoDate('2026-12-31', 'fr')).toBe('31 déc. 2026');
+    expect(formatDayDateTime('2026-10-03T21:00:00Z', 'Africa/Tunis', 'fr')).toBe('sam. 03 oct. · 22:00');
+    expect(periodLabel('2026-10-01', 3, 4, 'fr')).toBe('T4 2026 – T3 2027');
+    expect(periodLabel('2026-07-01', 6, 1, 'fr')).toBe('S2 2026');
+    expect(formatRelative(new Date('2026-09-28T17:55:00'), new Date('2026-09-28T18:00:00'), 'fr')).toBe('5 min');
+  });
+
+  it('translates the default club texts as a whole', () => {
+    expect(translate('fr', DEFAULT_CLUB_RULES)).toContain('# Le respect avant tout');
+    expect(translate('fr', DEFAULT_CLUB_RULES).split('\n')).toHaveLength(DEFAULT_CLUB_RULES.split('\n').length);
   });
 });
 

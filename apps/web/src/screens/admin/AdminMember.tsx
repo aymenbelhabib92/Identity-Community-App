@@ -3,10 +3,9 @@ import {
   formatIsoDate,
   formatMoney,
   formatPhone,
-  ROLE_LABELS,
+  LANGUAGE_NAMES,
   ROLES,
-  toIsoDate,
-  zonedParts,
+  t,
   type Membership,
   type PaymentKind,
   type Role,
@@ -17,6 +16,7 @@ import { Ban, Check, CircleCheck, KeyRound, Phone, Receipt, ShieldCheck, UserChe
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { PaymentRow } from '../../components/payments/Payments';
+import { CarPhotoStrip } from '../../components/photos/Photos';
 import { StatePill } from '../../components/StatePill';
 import {
   Avatar,
@@ -39,14 +39,10 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useCan, useUser } from '../../lib/auth';
+import { dateOf, roleLabel } from '../../lib/format';
 import { keys } from '../../lib/queries';
 import s from './admin.module.css';
 import { ReviewSheet, type ReviewTarget } from './ReviewSheet';
-
-function dateOf(timestamp: string): string {
-  const p = zonedParts(new Date(timestamp));
-  return formatIsoDate(toIsoDate(p.y, p.m, p.d));
-}
 
 type SheetName = 'record' | 'role' | 'suspend' | 'reactivate' | 'approve' | 'decline' | 'password' | null;
 
@@ -56,7 +52,7 @@ export default function AdminMember() {
 
   return (
     <Screen>
-      <BackLink to="/admin/members">Members</BackLink>
+      <BackLink to="/admin/members">{t('Members')}</BackLink>
       {member.isPending ? (
         <Loading />
       ) : member.error ? (
@@ -83,7 +79,7 @@ function MemberDetail({ membership }: { membership: Membership }) {
   return (
     <>
       <div className={s.memberHead}>
-        <Avatar name={member.fullName} size={64} />
+        <Avatar name={member.fullName} photo={member.avatar} size={64} state={member.state} online={member.online} />
         <div>
           <p className={s.memberName}>{member.fullName}</p>
           <div className={s.memberMeta}>
@@ -93,25 +89,27 @@ function MemberDetail({ membership }: { membership: Membership }) {
         </div>
       </div>
 
-      <SectionHeader>Membership</SectionHeader>
+      <SectionHeader>{t('Membership')}</SectionHeader>
       <List>
-        <ListRow title="Badge" value={formatBadgeNumber(member.badgeNumber)} />
-        <ListRow title="Role" value={ROLE_LABELS[member.role]} />
-        <ListRow title="Car" value={member.car ?? '—'} />
-        <ListRow title="Requested" value={dateOf(member.createdAt)} />
-        <ListRow title="Member since" value={member.approvedAt ? dateOf(member.approvedAt) : '—'} />
-        <ListRow title="Valid until" value={member.paidUntil ? formatIsoDate(member.paidUntil) : '—'} />
-        <ListRow title="Location sharing" value={member.locationSharing ? 'On' : 'Off'} />
+        <ListRow title={t('Badge')} value={formatBadgeNumber(member.badgeNumber)} />
+        <ListRow title={t('Role')} value={roleLabel(member.role)} />
+        <ListRow title={t('Car')} value={member.car ?? '—'} />
+        <ListRow title={t('Requested')} value={dateOf(member.createdAt)} />
+        <ListRow title={t('Member since')} value={member.approvedAt ? dateOf(member.approvedAt) : '—'} />
+        <ListRow title={t('Valid until')} value={member.paidUntil ? formatIsoDate(member.paidUntil) : '—'} />
+        <ListRow title={t('Location sharing')} value={member.locationSharing ? t('On') : t('Off')} />
+        <ListRow title={t('Language')} value={member.language ? LANGUAGE_NAMES[member.language] : '—'} />
       </List>
+      <CarPhotoStrip photos={member.carPhotos} className={s.carPhotos} />
 
-      <SectionHeader>Actions</SectionHeader>
+      <SectionHeader>{t('Actions')}</SectionHeader>
       <List>
-        <ListRow href={`tel:${member.phone}`} tile={{ icon: <Phone />, color: 'green' }} title="Call" chevron />
+        <ListRow href={`tel:${member.phone}`} tile={{ icon: <Phone />, color: 'green' }} title={t('Call')} chevron />
         {canRecord && (canRecordEntryFee || canRecordDues) && (
           <ListRow
             tile={{ icon: <Wallet />, color: 'orange' }}
-            title="Record a payment in person"
-            subtitle={canRecordEntryFee ? `Entry fee · ${formatMoney(fees.entryFee, fees.currency)}` : 'Dues'}
+            title={t('Record a payment in person')}
+            subtitle={canRecordEntryFee ? `${t('Entry fee')} · ${formatMoney(fees.entryFee, fees.currency)}` : t('Dues')}
             onClick={() => setSheet('record')}
             chevron
           />
@@ -119,8 +117,8 @@ function MemberDetail({ membership }: { membership: Membership }) {
         {canManage && member.status === 'pending' && (
           <ListRow
             tile={{ icon: <UserCheck />, color: 'blue' }}
-            title="Approve without payment"
-            subtitle="Founding members, honorary badges…"
+            title={t('Approve without payment')}
+            subtitle={t('Founding members, honorary badges…')}
             onClick={() => setSheet('approve')}
             chevron
           />
@@ -128,8 +126,8 @@ function MemberDetail({ membership }: { membership: Membership }) {
         {canManage && (
           <ListRow
             tile={{ icon: <ShieldCheck />, color: 'purple' }}
-            title="Change role"
-            value={ROLE_LABELS[member.role]}
+            title={t('Change role')}
+            value={roleLabel(member.role)}
             onClick={() => setSheet('role')}
             chevron
           />
@@ -137,32 +135,37 @@ function MemberDetail({ membership }: { membership: Membership }) {
         {canManage && (
           <ListRow
             tile={{ icon: <KeyRound />, color: 'gray' }}
-            title="Temporary password"
-            subtitle="When the member forgot theirs"
+            title={t('Temporary password')}
+            subtitle={t('When the member forgot theirs')}
             onClick={() => setSheet('password')}
             chevron
           />
         )}
         {canManage && member.status === 'active' && (
-          <ListRow tile={{ icon: <Ban />, color: 'red' }} title="Suspend" onClick={() => setSheet('suspend')} destructive />
+          <ListRow tile={{ icon: <Ban />, color: 'red' }} title={t('Suspend')} onClick={() => setSheet('suspend')} destructive />
         )}
         {canManage && member.status === 'suspended' && (
           <ListRow
             tile={{ icon: <CircleCheck />, color: 'green' }}
-            title="Lift the suspension"
+            title={t('Lift the suspension')}
             onClick={() => setSheet('reactivate')}
             chevron
           />
         )}
         {canManage && member.status === 'pending' && (
-          <ListRow tile={{ icon: <UserX />, color: 'red' }} title="Decline the request" onClick={() => setSheet('decline')} destructive />
+          <ListRow
+            tile={{ icon: <UserX />, color: 'red' }}
+            title={t('Decline the request')}
+            onClick={() => setSheet('decline')}
+            destructive
+          />
         )}
       </List>
 
-      <SectionHeader>Payments</SectionHeader>
+      <SectionHeader>{t('Payments')}</SectionHeader>
       {membership.payments.length === 0 ? (
         <Card>
-          <EmptyState icon={<Receipt />}>No payment yet.</EmptyState>
+          <EmptyState icon={<Receipt />}>{t('No payment yet.')}</EmptyState>
         </Card>
       ) : (
         <List>
@@ -184,30 +187,30 @@ function MemberDetail({ membership }: { membership: Membership }) {
         onClose={close}
         memberId={member.id}
         body={{ status: 'active' }}
-        title="Approve without payment?"
-        text="The member gets a badge and full access now. The entry fee will not be recorded."
-        confirm="Approve"
-        done="Member approved"
+        title={t('Approve without payment?')}
+        text={t('The member gets a badge and full access now. The entry fee will not be recorded.')}
+        confirm={t('Approve')}
+        done={t('Member approved')}
       />
       <StatusSheet
         open={sheet === 'reactivate'}
         onClose={close}
         memberId={member.id}
         body={{ status: 'active' }}
-        title="Lift the suspension?"
-        text="The member gets access to the map and member meetups again."
-        confirm="Lift suspension"
-        done="Suspension lifted"
+        title={t('Lift the suspension?')}
+        text={t('The member gets access to the map and member meetups again.')}
+        confirm={t('Lift suspension')}
+        done={t('Suspension lifted')}
       />
       <StatusSheet
         open={sheet === 'suspend'}
         onClose={close}
         memberId={member.id}
         body={{ status: 'suspended' }}
-        title="Suspend this member?"
-        text="They lose access to the member map and member-only meetups, and their shared position is deleted."
-        confirm="Suspend"
-        done="Member suspended"
+        title={t('Suspend this member?')}
+        text={t('They lose access to the member map and member-only meetups, and their shared position is deleted.')}
+        confirm={t('Suspend')}
+        done={t('Member suspended')}
         danger
       />
       <StatusSheet
@@ -215,10 +218,10 @@ function MemberDetail({ membership }: { membership: Membership }) {
         onClose={close}
         memberId={member.id}
         body={{ status: 'rejected' }}
-        title="Decline this request?"
-        text="Pending payments of this request are rejected too."
-        confirm="Decline"
-        done="Request declined"
+        title={t('Decline this request?')}
+        text={t('Pending payments of this request are rejected too.')}
+        confirm={t('Decline')}
+        done={t('Request declined')}
         danger
       />
       <PasswordSheet open={sheet === 'password'} onClose={close} memberId={member.id} name={member.fullName} />
@@ -280,23 +283,23 @@ function RoleSheet({ open, onClose, memberId, role }: { open: boolean; onClose: 
   const update = useMemberMutation(
     memberId,
     (next: Role) => api.admin.updateMember(memberId, { role: next }),
-    'Role updated',
+    t('Role updated'),
     onClose,
   );
   const descriptions: Record<Role, string> = {
-    member: 'Map, meetups, pass',
-    organizer: 'Creates meetups, posts announcements, checks passes',
-    treasurer: 'Verifies payments, records cash',
-    admin: 'Everything, including roles and club settings',
+    member: t('Map, meetups, pass'),
+    organizer: t('Creates meetups, posts announcements, checks passes'),
+    treasurer: t('Verifies payments, records cash'),
+    admin: t('Everything, including roles and club settings'),
   };
   return (
-    <Sheet open={open} onClose={onClose} title="Role">
+    <Sheet open={open} onClose={onClose} title={t('Role')}>
       <div className={s.sheetStack}>
         <List>
           {ROLES.map((value) => (
             <ListRow
               key={value}
-              title={ROLE_LABELS[value]}
+              title={roleLabel(value)}
               subtitle={descriptions[value]}
               onClick={() => value !== role && update.mutate(value)}
               trailing={value === role ? <Check className={s.check} aria-hidden strokeWidth={3} /> : undefined}
@@ -318,27 +321,27 @@ function RecordSheet({ open, onClose, membership }: { open: boolean; onClose: ()
   const record = useMemberMutation(
     member.id,
     () => api.admin.recordPayment(member.id, { kind, periods: kind === 'dues' ? periods : undefined, note: note || undefined }),
-    'Payment recorded',
+    t('Payment recorded'),
     onClose,
   );
 
   return (
-    <Sheet open={open} onClose={onClose} title="Payment in person">
+    <Sheet open={open} onClose={onClose} title={t('Payment in person')}>
       <div className={s.sheetStack}>
         {entryFeeOpen && membership.duesOptions.length > 0 && (
           <Segmented
-            label="What was paid"
+            label={t('What was paid')}
             value={kind}
             onChange={setKind}
             options={[
-              { value: 'entry_fee', label: 'Entry fee' },
-              { value: 'dues', label: 'Dues' },
+              { value: 'entry_fee', label: t('Entry fee') },
+              { value: 'dues', label: t('Dues') },
             ]}
           />
         )}
         {kind === 'entry_fee' ? (
           <List>
-            <ListRow title="Entry fee & badge" value={formatMoney(fees.entryFee, fees.currency)} />
+            <ListRow title={t('Entry fee & badge')} value={formatMoney(fees.entryFee, fees.currency)} />
           </List>
         ) : (
           <List>
@@ -361,10 +364,10 @@ function RecordSheet({ open, onClose, membership }: { open: boolean; onClose: ()
           </List>
         )}
         <FormList>
-          <FormRow label="Note" htmlFor="record-note">
+          <FormRow label={t('Note')} htmlFor="record-note">
             <Input
               id="record-note"
-              placeholder="e.g. Cash at Coffee & Cars"
+              placeholder={t('e.g. Cash at Coffee & Cars')}
               value={note}
               maxLength={500}
               onChange={(event) => setNote(event.target.value)}
@@ -373,7 +376,7 @@ function RecordSheet({ open, onClose, membership }: { open: boolean; onClose: ()
         </FormList>
         {record.error && <ErrorState error={record.error} />}
         <Button loading={record.isPending} onClick={() => record.mutate(undefined)}>
-          Record as received
+          {t('Record as received')}
         </Button>
       </div>
     </Sheet>
@@ -390,33 +393,33 @@ function PasswordSheet({ open, onClose, memberId, name }: { open: boolean; onClo
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast('Copied', 'success');
+      toast(t('Copied'), 'success');
     } catch {
-      toast('Select the password to copy it', 'info');
+      toast(t('Select the password to copy it'), 'info');
     }
   };
 
   return (
-    <Sheet open={open} onClose={closeAndClear} title="Temporary password">
+    <Sheet open={open} onClose={closeAndClear} title={t('Temporary password')}>
       <div className={s.sheetStack}>
         {reset.data ? (
           <>
             <p className={s.text}>
-              Give this password to {name}. It is shown only once; they can change it from their profile.
+              {t('Give this password to {name}. It is shown only once; they can change it from their account.', { name })}
             </p>
             <p className={s.password}>{reset.data.temporaryPassword}</p>
             <Button variant="secondary" onClick={() => void copy(reset.data.temporaryPassword)}>
-              Copy
+              {t('Copy')}
             </Button>
           </>
         ) : (
           <>
             <p className={s.text}>
-              {name} will be signed out on every device and will sign in with a new password you give them.
+              {t('{name} will be signed out on every device and will sign in with a new password you give them.', { name })}
             </p>
             {reset.error && <ErrorState error={reset.error} />}
             <Button loading={reset.isPending} onClick={() => reset.mutate()}>
-              Create a temporary password
+              {t('Create a temporary password')}
             </Button>
           </>
         )}

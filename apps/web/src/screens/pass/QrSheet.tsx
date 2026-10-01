@@ -1,4 +1,4 @@
-import { formatBadgeNumber, type User } from '@identity/shared';
+import { formatBadgeNumber, t, type User } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ErrorState, Sheet, Spinner } from '../../components/ui';
@@ -38,15 +38,15 @@ export function QrSheet({ open, onClose, member }: { open: boolean; onClose: () 
   }, [token.data]);
 
   return (
-    <Sheet open={open} onClose={onClose} title="Member pass">
+    <Sheet open={open} onClose={onClose} title={t('Member pass')}>
       {token.error ? (
         <ErrorState error={token.error} />
       ) : (
         <>
-          <div className={s.qrBox}>{image ? <img src={image} alt="Pass QR code" /> : <Spinner />}</div>
+          <div className={s.qrBox}>{image ? <img src={image} alt={t('Pass QR code')} /> : <Spinner />}</div>
           <p className={s.qrName}>{member.fullName}</p>
-          <p className={s.qrMeta}>Badge {formatBadgeNumber(member.badgeNumber)}</p>
-          <p className={s.qrHint}>Show this code to an organizer at check-in. It refreshes every few minutes.</p>
+          <p className={s.qrMeta}>{t('Badge {badge}', { badge: formatBadgeNumber(member.badgeNumber) })}</p>
+          <p className={s.qrHint}>{t('Show this code to an organizer at check-in. It refreshes every few minutes.')}</p>
         </>
       )}
     </Sheet>

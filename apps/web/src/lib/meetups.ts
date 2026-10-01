@@ -1,4 +1,4 @@
-import type { Meetup } from '@identity/shared';
+import { t, type Meetup } from '@identity/shared';
 
 export type LocationSummary = { kind: 'locked' | 'place' | 'none'; text: string };
 
@@ -6,13 +6,13 @@ export type LocationSummary = { kind: 'locked' | 'place' | 'none'; text: string 
 export function locationSummary(meetup: Meetup): LocationSummary {
   switch (meetup.locationStatus) {
     case 'locked':
-      return { kind: 'locked', text: `Location revealed ${meetup.revealHoursBefore}h before` };
+      return { kind: 'locked', text: t('Location revealed {hours}h before', { hours: meetup.revealHoursBefore }) };
     case 'rsvp_required':
-      return { kind: 'locked', text: 'Confirm you are going to see the spot' };
+      return { kind: 'locked', text: t('Confirm you are going to see the spot') };
     case 'visible':
-      return { kind: 'place', text: meetup.location?.name || meetup.location?.address || 'Meeting point on the map' };
+      return { kind: 'place', text: meetup.location?.name || meetup.location?.address || t('Meeting point on the map') };
     case 'not_set':
-      return { kind: 'none', text: 'Meeting point to be announced' };
+      return { kind: 'none', text: t('Meeting point to be announced') };
   }
 }
 

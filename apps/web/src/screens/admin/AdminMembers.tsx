@@ -1,4 +1,4 @@
-import { formatBadgeNumber, formatPhone, MEMBER_FILTERS, type MemberFilter } from '@identity/shared';
+import { formatBadgeNumber, formatPhone, MEMBER_FILTERS, t, type MemberFilter } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { useDebounced } from '../../lib/hooks';
 import { keys } from '../../lib/queries';
 import s from './admin.module.css';
 
+/** English source texts, translated when displayed. */
 const FILTER_LABELS: Record<MemberFilter, string> = {
   all: 'All',
   pending: 'Pending',
@@ -39,21 +40,21 @@ export default function AdminMembers() {
 
   return (
     <Screen>
-      <BackLink to="/admin">Admin</BackLink>
-      <LargeTitle>Members</LargeTitle>
+      <BackLink to="/admin">{t('Admin')}</BackLink>
+      <LargeTitle>{t('Members')}</LargeTitle>
 
       <label className={s.search}>
         <Search aria-hidden />
         <input
           type="search"
-          placeholder="Name or phone"
+          placeholder={t('Name or phone')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="Search members"
+          aria-label={t('Search members')}
         />
       </label>
 
-      <div className={s.chips} role="radiogroup" aria-label="Filter">
+      <div className={s.chips} role="radiogroup" aria-label={t('Filter')}>
         {MEMBER_FILTERS.map((value) => (
           <button
             key={value}
@@ -63,7 +64,7 @@ export default function AdminMembers() {
             className={cx(s.chip, value === filter && s.chipActive)}
             onClick={() => setParams(value === 'all' ? {} : { filter: value }, { replace: true })}
           >
-            {FILTER_LABELS[value]}
+            {t(FILTER_LABELS[value])}
           </button>
         ))}
       </div>
@@ -74,7 +75,7 @@ export default function AdminMembers() {
         <ErrorState error={members.error} onRetry={() => void members.refetch()} />
       ) : members.data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<Users />}>No member matches.</EmptyState>
+          <EmptyState icon={<Users />}>{t('No member matches.')}</EmptyState>
         </Card>
       ) : (
         <List>
@@ -82,12 +83,12 @@ export default function AdminMembers() {
             <ListRow
               key={member.id}
               to={`/admin/members/${member.id}`}
-              leading={<Avatar name={member.fullName} size={38} />}
+              leading={<Avatar name={member.fullName} photo={member.avatar} size={38} online={member.online} />}
               title={member.fullName}
               subtitle={[
                 member.badgeNumber !== null ? formatBadgeNumber(member.badgeNumber) : null,
                 formatPhone(member.phone),
-                member.pendingPayments ? `${member.pendingPayments} to review` : null,
+                member.pendingPayments ? t('{count} to review', { count: member.pendingPayments }) : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}

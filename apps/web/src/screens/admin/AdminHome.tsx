@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { BookOpen, CalendarPlus, CreditCard, ScanLine, Settings, UserPlus, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -19,25 +20,25 @@ export default function AdminHome() {
 
   return (
     <Screen>
-      <BackLink to="/home">Home</BackLink>
-      <LargeTitle>Club admin</LargeTitle>
+      <BackLink to="/home">{t('Home')}</BackLink>
+      <LargeTitle>{t('Club admin')}</LargeTitle>
 
       {canViewMembers && (
         <div className={s.stats}>
-          <Stat to="/admin/members?filter=active" value={count(data?.activeMembers)} label="Active members" tone="green" />
-          <Stat to="/admin/members?filter=pending" value={count(data?.pendingMembers)} label="Pending requests" tone="blue" />
-          <Stat to="/admin/members?filter=due" value={count(data?.dueMembers)} label="Dues due" tone="orange" />
-          <Stat to="/admin/members?filter=expired" value={count(data?.expiredMembers)} label="Expired" tone="red" />
+          <Stat to="/admin/members?filter=active" value={count(data?.activeMembers)} label={t('Active members')} tone="green" />
+          <Stat to="/admin/members?filter=pending" value={count(data?.pendingMembers)} label={t('Pending requests')} tone="blue" />
+          <Stat to="/admin/members?filter=due" value={count(data?.dueMembers)} label={t('Dues due')} tone="orange" />
+          <Stat to="/admin/members?filter=expired" value={count(data?.expiredMembers)} label={t('Expired')} tone="red" />
         </div>
       )}
 
-      <SectionHeader>To do</SectionHeader>
+      <SectionHeader>{t('To do')}</SectionHeader>
       <List>
         {canReview && (
           <ListRow
             to="/admin/payments"
             tile={{ icon: <CreditCard />, color: 'orange' }}
-            title="Payments to review"
+            title={t('Payments to review')}
             value={data?.pendingPayments ? data.pendingPayments : undefined}
           />
         )}
@@ -45,40 +46,45 @@ export default function AdminHome() {
           <ListRow
             to="/admin/members?filter=pending"
             tile={{ icon: <UserPlus />, color: 'blue' }}
-            title="Membership requests"
+            title={t('Membership requests')}
             value={data?.pendingMembers ? data.pendingMembers : undefined}
           />
         )}
         {canVerify && (
-          <ListRow to="/admin/scan" tile={{ icon: <ScanLine />, color: 'red' }} title="Scan a pass" subtitle="Check-in at a meetup" />
+          <ListRow
+            to="/admin/scan"
+            tile={{ icon: <ScanLine />, color: 'red' }}
+            title={t('Scan a pass')}
+            subtitle={t('Check-in at a meetup')}
+          />
         )}
       </List>
 
-      <SectionHeader>Club</SectionHeader>
+      <SectionHeader>{t('Club')}</SectionHeader>
       <List>
         {canViewMembers && (
           <ListRow
             to="/admin/members"
             tile={{ icon: <Users />, color: 'green' }}
-            title="Members"
+            title={t('Members')}
             value={data ? data.totalMembers : undefined}
           />
         )}
-        {canCreateMeetup && <ListRow to="/meetups/new" tile={{ icon: <CalendarPlus />, color: 'red' }} title="New meetup" />}
+        {canCreateMeetup && <ListRow to="/meetups/new" tile={{ icon: <CalendarPlus />, color: 'red' }} title={t('New meetup')} />}
         {canManageSettings && (
           <ListRow
             to="/admin/settings"
             tile={{ icon: <Settings />, color: 'gray' }}
-            title="Club settings"
-            subtitle="Fees, dues period, rules"
+            title={t('Club settings')}
+            subtitle={t('Fees, dues period, rules')}
           />
         )}
         {canManageSettings && (
           <ListRow
             href="/api/docs"
             tile={{ icon: <BookOpen />, color: 'purple' }}
-            title="API documentation"
-            subtitle="For developers of the club apps"
+            title={t('API documentation')}
+            subtitle={t('For developers of the club apps')}
             chevron
           />
         )}

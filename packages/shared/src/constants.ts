@@ -15,7 +15,15 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export const PROOF_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'] as const;
 export const PROOF_MAX_BYTES = 8 * 1024 * 1024;
 
-export const MEMBER_FILTERS = ['all', 'pending', 'active', 'due', 'expired', 'suspended', 'staff'] as const;
+/** Profile and car photos. Clients resize them before upload (see the web app's lib/photos). */
+export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const CAR_PHOTOS_MAX = 4;
+
+/** A member counts as online when the app talked to the server within this delay. */
+export const ONLINE_WINDOW_MINUTES = 5;
+
+export const MEMBER_FILTERS =['all', 'pending', 'active', 'due', 'expired', 'suspended', 'staff'] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 
 export const MEETUP_VISIBILITIES = ['public', 'secret', 'staff'] as const;

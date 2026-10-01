@@ -1,5 +1,11 @@
-/* Design tokens — iOS dark palette, matching the Identity mockups. */
-:root {
+/*
+ * Design tokens. Dark (iOS dark palette, matching the Identity mockups) is the
+ * default; `data-theme="light"` on <html> switches to the light palette (see
+ * lib/theme.ts). `.theme-dark` keeps the dark palette for brand surfaces that
+ * stay dark in both themes (the pass, the banner).
+ */
+:root,
+.theme-dark {
   color-scheme: dark;
 
   --bg: #000;
@@ -18,6 +24,7 @@
   --red: #ff453a;
   --yellow: #ffd60a;
   --purple: #bf5af2;
+  --gray: #8e8e93;
 
   --tint-blue: rgba(10, 132, 255, 0.2);
   --tint-green: rgba(48, 209, 88, 0.16);
@@ -25,28 +32,115 @@
   --tint-red: rgba(255, 69, 58, 0.2);
   --tint-gray: rgba(142, 142, 147, 0.2);
 
+  /* Text on a tint of the same colour (badges, pills, notices). */
+  --blue-text: #409cff;
+  --green-text: #30d158;
+  --orange-text: #ffb340;
+  --red-text: #ff6961;
+  --gray-text: #aeaeb2;
+
+  /* Sheets sit one level above the screen. */
+  --sheet-bg: #1c1c1e;
+  --sheet-surface: #2c2c2e;
+  --sheet-surface-2: #3a3a3c;
+  --sheet-surface-3: #48484a;
+  --backdrop: rgba(0, 0, 0, 0.6);
+
+  /* Translucent bars and floating cards (tab bar, map cards, toasts). */
+  --chrome: rgba(22, 22, 24, 0.94);
+  --chrome-border: rgba(84, 84, 88, 0.45);
+  --floating: rgba(28, 28, 30, 0.96);
+  --floating-2: rgba(44, 44, 46, 0.94);
+  --shadow: rgba(0, 0, 0, 0.45);
+  --segment-track: #1c1c1e;
+  --segment-track-sheet: #2c2c2e;
+  --segment-track-floating: rgba(28, 28, 30, 0.96);
+  --segment-active: #636366;
+  --spinner-track: rgba(255, 255, 255, 0.18);
+  --map-bg: #101114;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f2f2f7;
+  --surface: #fff;
+  --surface-2: #e5e5ea;
+  --surface-3: #d1d1d6;
+  --surface-4: #c7c7cc;
+  --separator: rgba(60, 60, 67, 0.22);
+  --text: #000;
+  --text-2: rgba(60, 60, 67, 0.62);
+  --text-3: rgba(60, 60, 67, 0.34);
+
+  --blue: #007aff;
+  --green: #34c759;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --yellow: #ffcc00;
+  --purple: #af52de;
+
+  --tint-blue: rgba(0, 122, 255, 0.13);
+  --tint-green: rgba(52, 199, 89, 0.16);
+  --tint-orange: rgba(255, 149, 0, 0.16);
+  --tint-red: rgba(255, 59, 48, 0.13);
+  --tint-gray: rgba(142, 142, 147, 0.16);
+
+  --blue-text: #0062cc;
+  --green-text: #1d8a3c;
+  --orange-text: #b35c00;
+  --red-text: #d1281e;
+  --gray-text: #636366;
+
+  --sheet-bg: #f2f2f7;
+  --sheet-surface: #fff;
+  --sheet-surface-2: #e5e5ea;
+  --sheet-surface-3: #d1d1d6;
+  --backdrop: rgba(0, 0, 0, 0.4);
+
+  --chrome: rgba(249, 249, 249, 0.94);
+  --chrome-border: rgba(60, 60, 67, 0.2);
+  --floating: rgba(255, 255, 255, 0.96);
+  --floating-2: rgba(255, 255, 255, 0.94);
+  --shadow: rgba(0, 0, 0, 0.16);
+  --segment-track: rgba(118, 118, 128, 0.16);
+  --segment-track-sheet: rgba(118, 118, 128, 0.16);
+  --segment-track-floating: rgba(226, 226, 232, 0.96);
+  --segment-active: #fff;
+  --spinner-track: rgba(60, 60, 67, 0.18);
+  --map-bg: #e9eaec;
+}
+
+.theme-dark {
+  color: var(--text);
+}
+
+:root {
   --radius-card: 16px;
   --radius-button: 14px;
   --radius-small: 10px;
 
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-  --page-x: 16px;
-  --app-max-width: 480px;
+  --page-x: clamp(16px, 4vw, 32px);
+  /* Phones and tablets use the whole width; very wide screens keep a readable column. */
+  --app-max-width: 1100px;
+  /* Sheets, banners and toasts stay phone-sized on wide screens. */
+  --overlay-max-width: 560px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tabbar-height: calc(58px + var(--safe-bottom));
   /* Extra room taken at the top by the install banner (0 when it is hidden). */
   --banner-space: 0px;
-  /* Room at the top of each screen: the status bar in the installed app, breathing space in a browser. */
-  --screen-top: calc(max(58px, calc(var(--safe-top) + 14px)) + var(--banner-space));
+  /* Room at the top of each screen: just below the status bar in the installed app. */
+  --screen-top: calc(max(16px, calc(var(--safe-top) + 8px)) + var(--banner-space));
 
   --shards: url('/brand/shards.webp');
 }
 
 /* Set by InstallBanner while it is displayed. */
 :root[data-install-banner] {
-  --banner-space: 40px;
+  --banner-space: 68px;
 }
 
 *,
@@ -73,6 +167,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  /* Native-app feel: no text selection or long-press menu outside form fields. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 h1,
@@ -100,6 +198,8 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 a {
@@ -112,6 +212,11 @@ svg {
   display: block;
 }
 
+a,
+img {
+  -webkit-user-drag: none;
+}
+
 :focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
@@ -121,20 +226,12 @@ svg {
   min-height: 100dvh;
 }
 
-/* The app is a phone-width column; on wide screens it is centred. */
+/* The app fills the screen; beyond --app-max-width it is a centred column. */
 .app-frame {
   position: relative;
   max-width: var(--app-max-width);
   min-height: 100dvh;
   margin: 0 auto;
-}
-
-@media (min-width: 520px) {
-  .app-frame {
-    box-shadow:
-      -1px 0 0 #141416,
-      1px 0 0 #141416;
-  }
 }
 
 .sr-only {

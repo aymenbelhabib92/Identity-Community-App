@@ -2,6 +2,7 @@ import {
   can,
   hasMemberAccess,
   membershipState,
+  ONLINE_WINDOW_MINUTES,
   PERMISSIONS,
   type ClubSettings,
   type IsoDate,
@@ -12,8 +13,10 @@ import {
   type User,
 } from '@identity/shared';
 import { and, eq, gte, inArray, sql } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { DbOrTx } from '../db/client';
 import { users, type UserRow } from '../db/schema';
+import type { Viewer } from '../types';
 
 const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
 
@@ -26,13 +29,22 @@ export function stateOf(
   return { state, hasAccess: hasMemberAccess(state, user.role) };
 }
 
-export function toUserDto(user: UserRow, settings: ClubSettings, today: IsoDate): User {
+/** Used the app within the last few minutes. */
+export function isOnline(lastSeenAt: Date | null, now: Date): boolean {
+  return lastSeenAt !== null && now.getTime() - lastSeenAt.getTime() < ONLINE_WINDOW_MINUTES * 60_000;
+}
+
+export function toUserDto(user: UserRow, { settings, today, now }: Pick<Viewer, 'settings' | 'today' | 'now'>): User {
   const { state, hasAccess } = stateOf(user, settings, today);
   return {
     id: user.id,
     fullName: user.fullName,
     phone: user.phone,
     car: user.car,
+    avatar: user.avatarPhotoId,
+    carPhotos: user.carPhotoIds,
+    language: user.language,
+    online: isOnline(user.lastSeenAt, now),
     role: user.role,
     status: user.status,
     state,
@@ -46,8 +58,23 @@ export function toUserDto(user: UserRow, settings: ClubSettings, today: IsoDate)
   };
 }
 
-export function toMemberRef(user: { id: string; fullName: string; role: Role } | null | undefined): MemberRef | null {
-  return user ? { id: user.id, fullName: user.fullName, role: user.role } : null;
+export type MemberRefRow = Pick<UserRow, 'id' | 'fullName' | 'role' | 'avatarPhotoId' | 'lastSeenAt'>;
+
+/** Columns to select for `toMemberRef`, from `users` or an alias of it. */
+export function memberRefColumns<T extends Record<keyof MemberRefRow, AnyPgColumn>>(table: T): Pick<T, keyof MemberRefRow> {
+  const { id, fullName, role, avatarPhotoId, lastSeenAt } = table;
+  return { id, fullName, role, avatarPhotoId, lastSeenAt };
+}
+
+export function toMemberRef(user: MemberRefRow | null | undefined, now: Date): MemberRef | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    role: user.role,
+    avatar: user.avatarPhotoId,
+    online: isOnline(user.lastSeenAt, now),
+  };
 }
 
 export async function findUser(db: DbOrTx, id: string): Promise<UserRow | undefined> {

@@ -4,7 +4,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { meetups, memberLocations, users } from '../db/schema';
 import { requireAccess } from '../plugins/auth';
 import { toMeetupDtos, visibleToViewer } from '../services/meetups';
-import { stateOf } from '../services/users';
+import { memberRefColumns, stateOf, toMemberRef } from '../services/users';
 
 const HOUR = 3_600_000;
 
@@ -25,10 +25,9 @@ export const mapRoutes: FastifyPluginAsyncZod = async (app) => {
       const since = new Date(viewer.now.getTime() - viewer.settings.locationTtlHours * HOUR);
       const rows = await app.db
         .select({
-          id: users.id,
-          fullName: users.fullName,
-          role: users.role,
+          member: memberRefColumns(users),
           car: users.car,
+          carPhotoIds: users.carPhotoIds,
           status: users.status,
           paidUntil: users.paidUntil,
           lat: memberLocations.lat,
@@ -40,12 +39,11 @@ export const mapRoutes: FastifyPluginAsyncZod = async (app) => {
         .where(and(eq(users.locationSharing, true), gte(memberLocations.updatedAt, since), ne(users.id, viewer.id)));
       return {
         items: rows
-          .filter((row) => stateOf(row, viewer.settings, viewer.today).hasAccess)
+          .filter((row) => stateOf({ ...row, role: row.member.role }, viewer.settings, viewer.today).hasAccess)
           .map((row) => ({
-            id: row.id,
-            fullName: row.fullName,
-            role: row.role,
+            ...toMemberRef(row.member, viewer.now)!,
             car: row.car,
+            carPhotos: row.carPhotoIds,
             lat: row.lat,
             lng: row.lng,
             updatedAt: row.updatedAt.toISOString(),

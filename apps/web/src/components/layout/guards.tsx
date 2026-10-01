@@ -1,3 +1,4 @@
+import { t } from '@identity/shared';
 import { useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '../../lib/auth';
@@ -32,7 +33,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       <Splash>
         <ErrorState error={error} onRetry={() => window.location.reload()} />
         <Button variant="plain" onClick={signOut}>
-          Sign out
+          {t('Sign out')}
         </Button>
       </Splash>
     );

@@ -1,7 +1,8 @@
-import { initials } from '@identity/shared';
+import { initials, type MembershipState } from '@identity/shared';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from '../../lib/cx';
+import { usePhoto } from '../../lib/photos';
 import s from './ui.module.css';
 
 export type Tone = 'red' | 'blue' | 'orange' | 'green' | 'gray';
@@ -181,10 +182,42 @@ export function IconTile({ color, large, children }: { color: TileColor; large?:
   );
 }
 
-export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+const STATE_RING: Record<MembershipState, string | undefined> = {
+  active: s.ringGreen,
+  due: s.ringOrange,
+  pending: s.ringOrange,
+  expired: s.ringRed,
+  suspended: s.ringRed,
+  rejected: undefined,
+};
+
+/**
+ * A member's photo, or their initials. `state` draws a ring in the colour of
+ * their membership (green when active); `online` adds a green dot.
+ */
+export function Avatar({
+  name,
+  photo,
+  size = 44,
+  state,
+  online,
+}: {
+  name: string;
+  /** Photo id (see lib/photos). */
+  photo?: string | null;
+  size?: number;
+  state?: MembershipState;
+  online?: boolean;
+}) {
+  const url = usePhoto(photo);
   return (
-    <span className={s.avatar} style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }} aria-hidden>
-      {initials(name)}
+    <span
+      className={cx(s.avatar, state && s.ring, state && STATE_RING[state])}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+      aria-hidden
+    >
+      {url ? <img src={url} alt="" /> : initials(name)}
+      {online && <span className={s.online} />}
     </span>
   );
 }

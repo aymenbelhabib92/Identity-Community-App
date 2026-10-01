@@ -1,5 +1,7 @@
 import './styles/global.css';
-import { ApiError } from '@identity/shared';
+// Applies the saved language and theme before anything is rendered.
+import { useLanguage } from './lib/preferences';
+import { ApiError, onMissingTranslation } from '@identity/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -19,15 +21,35 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+// Native-app feel: no browser context menu (long press, right click) outside form fields.
+document.addEventListener('contextmenu', (event) => {
+  if (!(event.target instanceof Element && event.target.closest('input, textarea, select'))) event.preventDefault();
+});
+
+if (import.meta.env.DEV) {
+  // Lists the texts still missing from the French dictionary (window.__missingTranslations).
+  const missing = new Set<string>();
+  Object.assign(window, { __missingTranslations: missing });
+  onMissingTranslation((_lang, text) => missing.add(text));
+}
+
+/** The whole app is rendered again when the language changes, so every text is translated anew. */
+function App() {
+  const language = useLanguage();
+  return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AuthProvider key={language}>
         <ToastProvider>
           <RouterProvider router={router} />
           <InstallBanner />
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
   </StrictMode>,
 );
