@@ -14,6 +14,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowUp, Ban, Copy, Lock, MessagesSquare, Reply, Trash2, X } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { MemberProfileSheet } from '../../components/members/MemberProfileSheet';
 import {
   Avatar,
   ButtonLink,
@@ -108,6 +109,7 @@ function ChatRoom({ user }: { user: User }) {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [selected, setSelected] = useState<ChatMessage | null>(null);
+  const [profile, setProfile] = useState<MemberRef | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [composerHeight, setComposerHeight] = useState(64);
   const keyboard = useKeyboardInset();
@@ -267,6 +269,7 @@ function ChatRoom({ user }: { user: User }) {
           onLoadOlder={() => void loadOlder()}
           onSelect={setSelected}
           onShowOriginal={showOriginal}
+          onProfile={setProfile}
         />
       )}
       <div style={{ height: composerHeight + Math.max(0, keyboard - 58) }} aria-hidden />
@@ -315,6 +318,7 @@ function ChatRoom({ user }: { user: User }) {
           </List>
         )}
       </Sheet>
+      <MemberProfileSheet member={profile} onClose={() => setProfile(null)} />
     </Screen>
   );
 }
@@ -352,6 +356,7 @@ function Messages({
   onLoadOlder,
   onSelect,
   onShowOriginal,
+  onProfile,
 }: {
   room: ChatMessageList;
   pending: PendingMessage[];
@@ -361,6 +366,7 @@ function Messages({
   onLoadOlder: () => void;
   onSelect: (message: ChatMessage) => void;
   onShowOriginal: (id: string) => void;
+  onProfile: (member: MemberRef) => void;
 }) {
   // Scrolling up to the top loads older messages.
   const top = useRef<HTMLDivElement>(null);
@@ -424,6 +430,7 @@ function Messages({
               names={names}
               onSelect={onSelect}
               onShowOriginal={onShowOriginal}
+              onProfile={onProfile}
             />
           </Fragment>
         );
@@ -451,6 +458,7 @@ function MessageRow({
   names,
   onSelect,
   onShowOriginal,
+  onProfile,
 }: {
   message: ChatMessage;
   mine: boolean;
@@ -460,20 +468,30 @@ function MessageRow({
   names: Map<string, string>;
   onSelect: (message: ChatMessage) => void;
   onShowOriginal: (id: string) => void;
+  onProfile: (member: MemberRef) => void;
 }) {
   const { author } = message;
   const mentioned = message.mentions.map((id) => names.get(id)).filter((name): name is string => Boolean(name));
   const mentionsMe = message.mentions.includes(me.id);
+  const profileLabel = t('Profile of {name}', { name: author.fullName });
 
   return (
     <div id={`message-${message.id}`} className={cx(s.row, mine && s.mine, first && s.groupStart)}>
       {!mine && (
         <div className={s.avatarSlot}>
-          {last && <Avatar name={author.fullName} photo={author.avatar} size={30} online={author.online} />}
+          {last && (
+            <button type="button" className={s.avatarButton} onClick={() => onProfile(author)} aria-label={profileLabel}>
+              <Avatar name={author.fullName} photo={author.avatar} size={30} online={author.online} />
+            </button>
+          )}
         </div>
       )}
       <div className={s.column}>
-        {!mine && first && <p className={s.author}>{author.fullName}</p>}
+        {!mine && first && (
+          <button type="button" className={s.author} onClick={() => onProfile(author)} aria-label={profileLabel}>
+            {author.fullName}
+          </button>
+        )}
         {message.deleted ? (
           <div className={cx(s.bubble, s.deleted)}>
             <Ban aria-hidden />

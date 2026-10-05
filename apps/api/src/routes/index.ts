@@ -8,6 +8,7 @@ import { geoRoutes } from './geo';
 import { mapRoutes } from './map';
 import { meRoutes } from './me';
 import { meetupRoutes } from './meetups';
+import { memberRoutes } from './members';
 import { membershipRoutes } from './membership';
 import { notificationRoutes } from './notifications';
 import { passRoutes } from './pass';
@@ -31,6 +32,7 @@ export const apiRoutes: FastifyPluginAsyncZod = async (app) => {
     await secured.register(photoRoutes);
     await secured.register(pushRoutes);
     await secured.register(chatRoutes);
+    await secured.register(memberRoutes);
     await secured.register(adminRoutes, { prefix: '/admin' });
   });
 };

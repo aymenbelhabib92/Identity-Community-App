@@ -59,6 +59,10 @@ export function webPushTransport(keys: VapidKeys): PushTransport {
       vapidDetails: keys,
       // Delivered when the phone comes back online within a day, then dropped.
       TTL: 24 * 3600,
+      // Every message is shown to the member: the push services deliver it at once,
+      // even to a phone asleep. With "normal", Android and iOS hold it until the
+      // phone wakes the browser up (in practice: until the app is opened).
+      urgency: 'high',
     });
   };
 }

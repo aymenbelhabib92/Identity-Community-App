@@ -15,7 +15,7 @@ same routes.
 | **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
 | **Club** | Announcements, club rules, notifications in the app and as **push notifications** on the phone | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
-| **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
+| **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge, a member's profile (car, car photos) from their photo; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
 | **Preferences** | English or French (the phone's language by default, remembered on the account), dark / light / automatic theme | — |
 
 Roles: **member**, **organizer** (meetups, announcements, pass checks), **treasurer** (payments),
@@ -66,6 +66,9 @@ docker/       Caddyfile (web server + HTTPS + /api proxy)
   reading the chat gets no push for it; otherwise mentions and replies are pushed one by one, and
   members who chose "all messages" get one grouped notification at most every 3 minutes
   (`CHAT_PUSH_INTERVAL_MINUTES`). Chat messages never go to the bell.
+- **Push priority:** every push is sent with `Urgency: high` (they are all shown to the member).
+  With the default "normal", Android and iOS keep messages while the phone sleeps and deliver
+  them only when the browser wakes up, in practice when the app is opened.
 
 ## Getting started (development)
 
@@ -137,7 +140,8 @@ Run the API tests against a real PostgreSQL server with
 - **Presence:** "online" means the app talked to the server in the last 5 minutes. Other members
   see that green dot; the membership state of a member is shown to staff only.
 - **Chat:** readable and writable by members with access only (active, or dues due during the
-  grace period); sending is limited to 30 messages a minute per member.
+  grace period); sending is limited to 30 messages a minute per member. The profile opened from
+  the chat shows name, role, photo, car and car photos, never the phone number or the membership.
 - **Secret meetups:** the API never sends the meeting point before the reveal time, and only to
   members who confirmed (plus staff). Members without an active membership do not see secret
   meetups at all.

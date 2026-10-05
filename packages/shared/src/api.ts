@@ -95,6 +95,15 @@ export const memberRefSchema = z.object({
 });
 export type MemberRef = z.infer<typeof memberRefSchema>;
 
+/** A member's profile as other members see it (from the chat): no phone, no membership state. */
+export const memberProfileSchema = memberRefSchema.extend({
+  car: z.string().nullable(),
+  carPhotos: carPhotoRefs,
+  /** When the membership was first confirmed. */
+  memberSince: timestampSchema.nullable(),
+});
+export type MemberProfile = z.infer<typeof memberProfileSchema>;
+
 const fullNameInput = z.string().trim().min(2, 'Enter your full name').max(80);
 const phoneInput = z.string().trim().min(6, 'Enter a valid phone number').max(24);
 const passwordInput = z.string().min(8, 'Use at least 8 characters').max(128);

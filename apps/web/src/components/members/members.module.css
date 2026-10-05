@@ -1,0 +1,32 @@
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.role {
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.online {
+  color: var(--green-text);
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 104px;
+  color: var(--text-2);
+}
+
+.photos {
+  margin-top: 12px;
+}

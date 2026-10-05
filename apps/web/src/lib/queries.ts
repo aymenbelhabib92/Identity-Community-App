@@ -17,6 +17,7 @@ export const keys = {
   chatMessages: ['chat', 'messages'] as const,
   chatUnread: ['chat', 'unread'] as const,
   chatMembers: ['chat', 'members'] as const,
+  member: (id: string) => ['members', id] as const,
   mapMembers: ['map', 'members'] as const,
   mapMeetups: ['map', 'meetups'] as const,
   admin: ['admin'] as const,

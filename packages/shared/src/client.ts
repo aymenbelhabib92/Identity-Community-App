@@ -28,6 +28,7 @@ import type {
   MeetupCreateBody,
   MeetupListQuery,
   MeetupUpdateBody,
+  MemberProfile,
   MemberRef,
   Membership,
   MyLocation,
@@ -188,6 +189,11 @@ export function createApiClient(options: ApiClientOptions) {
     photos: {
       /** A member's profile or car photo. */
       get: (photoId: string) => blob(`/photos/${id(photoId)}`),
+    },
+
+    members: {
+      /** Another member's profile (active members only). */
+      get: (memberId: string) => get<MemberProfile>(`/members/${id(memberId)}`),
     },
 
     club: {

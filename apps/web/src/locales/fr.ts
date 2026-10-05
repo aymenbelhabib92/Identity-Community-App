@@ -240,6 +240,7 @@ export const FR: Record<string, string> = {
   'Mention a member': 'Mentionner un membre',
   'Replying to {name}': 'Réponse à {name}',
   'Cancel the reply': 'Annuler la réponse',
+  'Profile of {name}': 'Profil de {name}',
   Reply: 'Répondre',
   Delete: 'Supprimer',
   Send: 'Envoyer',

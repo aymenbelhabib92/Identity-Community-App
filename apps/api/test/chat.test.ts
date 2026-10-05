@@ -142,6 +142,24 @@ describe('club chat', () => {
   });
 });
 
+describe('member profiles (opened from the chat)', () => {
+  it('show the car, never the phone number or the membership', async () => {
+    const res = await call(yasmine.token, 'GET', `/members/${karim.id}`);
+    expect(res.statusCode).toBe(200);
+    const profile = res.json<Record<string, unknown>>();
+    expect(profile).toMatchObject({ id: karim.id, fullName: 'Karim Ben Salah', role: 'member', car: 'Golf 7 GTI, 2018', carPhotos: [] });
+    expect(typeof profile.memberSince).toBe('string');
+    expect(profile).not.toHaveProperty('phone');
+    expect(profile).not.toHaveProperty('state');
+  });
+
+  it('are for members with access, about existing members', async () => {
+    const { token } = await register(t.app, 'Curious Pending');
+    expect((await call(token, 'GET', `/members/${karim.id}`)).statusCode).toBe(403);
+    expect((await call(karim.token, 'GET', '/members/00000000-0000-4000-8000-000000000000')).statusCode).toBe(404);
+  });
+});
+
 describe('chat notifications', () => {
   it('reach mentioned members only by default, never in the bell', async () => {
     const before = (await call(karim.token, 'GET', '/notifications')).json<{ items: unknown[] }>().items.length;
