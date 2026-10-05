@@ -97,7 +97,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
         viewer.id,
       );
       const excerpt = row!.body.length > 140 ? `${row!.body.slice(0, 137)}…` : row!.body;
-      await notify(app.db, recipients, (tr) => ({
+      await notify(app, recipients, (tr) => ({
         kind: 'announcement',
         title: tr(ANNOUNCEMENT_TITLES[viewer.role]),
         body: excerpt,

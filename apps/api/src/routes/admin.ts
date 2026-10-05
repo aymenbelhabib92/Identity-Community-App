@@ -27,7 +27,7 @@ import {
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { DbOrTx } from '../db/client';
-import { memberLocations, payments, users, type PaymentRow, type UserRow } from '../db/schema';
+import { memberLocations, payments, pushSubscriptions, users, type PaymentRow, type UserRow } from '../db/schema';
 import { badRequest, conflict, notFound } from '../errors';
 import { generateTemporaryPassword, hashPassword } from '../lib/password';
 import { requirePermission } from '../plugins/auth';
@@ -203,7 +203,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       });
 
       const member = await findUser(app.db, payment.userId);
-      await notify(app.db, [payment.userId], (tr, lang) => {
+      await notify(app, [payment.userId], (tr, lang) => {
         const label = paymentLabel(payment, lang);
         if (decision === 'reject') {
           return {
@@ -341,7 +341,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const updated = (await findUser(app.db, target.id))!;
       if (roleChanged) {
-        await notify(app.db, [target.id], (tr) => ({
+        await notify(app, [target.id], (tr) => ({
           kind: 'role',
           title: tr('You are now {role}', { role: tr(ROLE_LABELS[updated.role]) }),
           body: isStaff(updated.role) ? tr('New tools are available in the Admin section of your profile.') : null,
@@ -350,7 +350,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       }
       if (statusChanged && updated.status !== 'pending') {
         const status = updated.status;
-        await notify(app.db, [target.id], (tr) => {
+        await notify(app, [target.id], (tr) => {
           const messages = {
             active: target.approvedAt
               ? { title: tr('Membership reactivated'), body: null }
@@ -405,7 +405,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       });
 
       const member = await findUser(app.db, target.id);
-      await notify(app.db, [target.id], (tr, lang) => ({
+      await notify(app, [target.id], (tr, lang) => ({
         kind: payment.kind === 'entry_fee' ? 'membership' : 'payment',
         title: tr(payment.kind === 'entry_fee' ? 'Welcome to Identity' : 'Payment recorded'),
         body:
@@ -446,6 +446,8 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         .update(users)
         .set({ passwordHash: await hashPassword(temporaryPassword), tokenVersion: sql`${users.tokenVersion} + 1` })
         .where(eq(users.id, target.id));
+      // The member's devices are signed out: they stop receiving notifications too.
+      await app.db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, target.id));
       return { temporaryPassword };
     },
   );

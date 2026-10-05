@@ -67,3 +67,9 @@ export const router = createBrowserRouter([
 ]);
 
 enableScreenTransitions(router);
+
+// A tapped push notification asks the app, when already open, to show its page (public/push-sw.js).
+navigator.serviceWorker?.addEventListener('message', (event: MessageEvent<{ type?: string; path?: unknown } | null>) => {
+  const { type, path } = event.data ?? {};
+  if (type === 'identity:open' && typeof path === 'string' && path.startsWith('/')) void router.navigate(path);
+});

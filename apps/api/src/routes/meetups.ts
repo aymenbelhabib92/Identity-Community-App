@@ -119,7 +119,7 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const meetup = row!;
       const recipients = await audienceIds(app.db, viewer.settings, viewer.today, audienceFor(meetup.visibility), viewer.id);
-      await notify(app.db, recipients, (tr, lang) => ({
+      await notify(app, recipients, (tr, lang) => ({
         kind: 'meetup',
         title: tr('New meetup: {title}', { title: meetup.title }),
         body:
@@ -173,7 +173,7 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
       const timeChanged = updated.startsAt.getTime() !== row.startsAt.getTime();
       const placeChanged = updated.lat !== row.lat || updated.lng !== row.lng || updated.locationName !== row.locationName;
       if (timeChanged || placeChanged) {
-        await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
+        await notify(app, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
           kind: 'meetup',
           title: tr('Meetup updated: {title}', { title: updated.title }),
           body: timeChanged ? tr('New time: {when}', { when: when(updated, lang) }) : tr('The meeting point changed.'),
@@ -205,7 +205,7 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
         .set({ cancelledAt: viewer.now })
         .where(eq(meetups.id, row.id))
         .returning();
-      await notify(app.db, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
+      await notify(app, (await goingIds(row.id)).filter((id) => id !== viewer.id), (tr, lang) => ({
         kind: 'meetup',
         title: tr('Cancelled: {title}', { title: row.title }),
         body: when(row, lang),

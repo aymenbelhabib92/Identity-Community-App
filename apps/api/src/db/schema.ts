@@ -186,6 +186,24 @@ export const notifications = pgTable(
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 );
 
+/**
+ * Web Push subscriptions: one per browser / installed app. The endpoint is
+ * unique; signing in with another account on the same device moves it.
+ */
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    endpoint: text('endpoint').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('push_subscriptions_user_idx').on(t.userId)],
+);
+
 /** Key/value store for club settings (see `clubSettingsSchema`). */
 export const settings = pgTable('settings', {
   key: text('key').primaryKey(),

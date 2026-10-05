@@ -20,6 +20,12 @@ export interface Config {
   logLevel: string;
   geocoder: { url: string; countryCodes: string; email: string | null };
   bootstrapAdmin: { phone: string; password: string; name: string } | null;
+  /**
+   * Web Push (VAPID). Without keys in the environment, a key pair is generated
+   * once and kept in the database. The subject (site URL or mailto:) identifies
+   * the sender to the push services.
+   */
+  vapid: { publicKey: string | null; privateKey: string | null; subject: string };
 }
 
 const DEV_JWT_SECRET = 'dev-only-secret-never-use-in-production-3f9a1c7e5b';
@@ -67,6 +73,11 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
       email: env.GEOCODER_EMAIL || null,
     },
     bootstrapAdmin,
+    vapid: {
+      publicKey: env.VAPID_PUBLIC_KEY || null,
+      privateKey: env.VAPID_PRIVATE_KEY || null,
+      subject: env.VAPID_SUBJECT || env.PUBLIC_URL || 'https://localhost',
+    },
     ...overrides,
   };
 }

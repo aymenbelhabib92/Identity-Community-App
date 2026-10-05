@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, SIGNED_OUT_EVENT, tokenStore } from './api';
 import { clearPhotos } from './photos';
 import { changeLanguage, currentLanguage } from './preferences';
+import { forgetPushDevice, syncPush } from './push';
 import { keys } from './queries';
 
 interface AuthContextValue {
@@ -41,6 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else void api.me.update({ language: currentLanguage() }).then((user) => queryClient.setQueryData(keys.me, user), () => {});
   }, [signedIn, accountLanguage, queryClient]);
 
+  // Push notifications: this device receives those of the account signed in on it.
+  useEffect(() => {
+    if (signedIn) void syncPush();
+  }, [signedIn, token]);
+
   const forget = useCallback(() => {
     setToken(null);
     queryClient.clear();
@@ -64,8 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(() => {
-    tokenStore.set(null);
-    forget();
+    // The device stops receiving this account's notifications (needs the token, so first).
+    const timeout = new Promise((resolve) => setTimeout(resolve, 3_000));
+    void Promise.race([forgetPushDevice(), timeout]).finally(() => {
+      tokenStore.set(null);
+      forget();
+    });
   }, [forget]);
 
   const value = useMemo<AuthContextValue>(

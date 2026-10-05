@@ -385,6 +385,32 @@ export const notificationListSchema = z.object({
 });
 export type NotificationList = z.infer<typeof notificationListSchema>;
 
+// ─── Push notifications ──────────────────────────────────────────────────────
+
+/** VAPID public key, for `pushManager.subscribe({ applicationServerKey })`. */
+export const pushKeySchema = z.object({ publicKey: z.string() });
+export type PushKey = z.infer<typeof pushKeySchema>;
+
+const pushEndpoint = z.url({ protocol: /^https$/ }).max(2_000);
+
+/** A browser's PushSubscription, as given by `subscription.toJSON()`. */
+export const pushSubscriptionBodySchema = z.object({
+  endpoint: pushEndpoint,
+  keys: z.object({
+    p256dh: z.string().min(10).max(200),
+    auth: z.string().min(8).max(100),
+  }),
+});
+export type PushSubscriptionBody = z.infer<typeof pushSubscriptionBodySchema>;
+
+export const pushUnsubscribeBodySchema = z.object({ endpoint: pushEndpoint });
+
+export const pushTestResultSchema = z.object({
+  /** Devices the test notification was handed to. */
+  devices: z.number().int(),
+});
+export type PushTestResult = z.infer<typeof pushTestResultSchema>;
+
 // ─── Map & location ──────────────────────────────────────────────────────────
 
 export const locationUpdateSchema = z.object({

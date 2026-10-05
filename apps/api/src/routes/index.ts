@@ -11,6 +11,7 @@ import { membershipRoutes } from './membership';
 import { notificationRoutes } from './notifications';
 import { passRoutes } from './pass';
 import { photoRoutes } from './photos';
+import { pushRoutes } from './push';
 
 /** Version 1 of the API, mounted at /api/v1 and shared by the web app and the native app. */
 export const apiRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -27,6 +28,7 @@ export const apiRoutes: FastifyPluginAsyncZod = async (app) => {
     await secured.register(geoRoutes);
     await secured.register(passRoutes);
     await secured.register(photoRoutes);
+    await secured.register(pushRoutes);
     await secured.register(adminRoutes, { prefix: '/admin' });
   });
 };

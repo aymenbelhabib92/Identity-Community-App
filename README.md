@@ -14,7 +14,7 @@ same routes.
 | **Profile** | Profile photo, car and up to 4 car photos, green dot when online, ring in the colour of the membership | Photos on member lists, payments and pass checks |
 | **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
-| **Club** | Announcements, club rules, notifications | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
+| **Club** | Announcements, club rules, notifications in the app and as **push notifications** on the phone | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
 | **Preferences** | English or French (the phone's language by default, remembered on the account), dark / light / automatic theme | — |
 
 Roles: **member**, **organizer** (meetups, announcements, pass checks), **treasurer** (payments),
@@ -50,6 +50,14 @@ docker/       Caddyfile (web server + HTTPS + /api proxy)
   language.
 - **Themes:** every colour is a CSS variable in `apps/web/src/styles/global.css`; the light palette
   overrides them under `data-theme="light"`.
+- **Push notifications** (Web Push): every in-app notification is also pushed to the devices where
+  the member turned them on — from the banner shown at each opening, or Account › Notifications.
+  The PWA's service worker shows them (`apps/web/public/push-sw.js`) and opens their page when
+  tapped. The VAPID key pair is generated on first start and kept in the database (or set
+  `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`); `PUBLIC_URL` identifies the club to the push services.
+  On iPhone (iOS 16.4+), notifications work once the app is installed on the Home Screen. They
+  need HTTPS, so they are not available with `npm run dev` (no service worker): use
+  `npm run build -w @identity/web && npm run preview -w @identity/web`.
 
 ## Getting started (development)
 

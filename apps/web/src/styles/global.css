@@ -130,7 +130,7 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tabbar-height: calc(58px + var(--safe-bottom));
-  /* Extra room taken at the top by the install banner (0 when it is hidden). */
+  /* Extra room taken at the top by a banner (install, notifications; 0 when hidden). */
   --banner-space: 0px;
   /* Room at the top of each screen: just below the status bar in the installed app. */
   --screen-top: calc(max(16px, calc(var(--safe-top) + 8px)) + var(--banner-space));
@@ -138,8 +138,8 @@
   --shards: url('/brand/shards.webp');
 }
 
-/* Set by InstallBanner while it is displayed. */
-:root[data-install-banner] {
+/* Set by TopBanners while a banner (install, notifications) is displayed. */
+:root[data-top-banner] {
   --banner-space: 68px;
 }
 
@@ -247,7 +247,7 @@ img {
 }
 
 /* ─── Screen transitions (see lib/transitions.ts) ─────────────────────────────
-   The whole page is captured as "root"; the tab bar and the install banner are
+   The whole page is captured as "root"; the tab bar and the top banner are
    captured apart so they stay still while screens slide under them. */
 
 :root {
@@ -301,7 +301,7 @@ img {
 }
 
 ::view-transition-group(tabbar),
-::view-transition-group(install-banner) {
+::view-transition-group(top-banner) {
   animation: none;
 }
 

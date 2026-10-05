@@ -164,4 +164,10 @@ Ne partagez rien sur le lieu en dehors du club.`,
   'Announcement from the treasurer': 'Annonce du trésorier',
   'Announcement from the admin': "Annonce de l'admin",
   'Announcement from the club': 'Annonce du club',
+
+  // ─── Push notifications ────────────────────────────────────────────────────
+  'Notifications are on': 'Les notifications sont activées',
+  'You will be told here about meetups, payments and club news.':
+    'Vous serez prévenu ici des rencontres, des paiements et des nouvelles du club.',
+  'Unknown push service.': 'Service de notification inconnu.',
 };

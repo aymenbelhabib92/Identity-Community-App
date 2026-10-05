@@ -96,7 +96,7 @@ export const membershipRoutes: FastifyPluginAsyncZod = async (app) => {
           .returning();
 
         const payment = row!;
-        await notify(app.db, await staffWith(app.db, 'payments:review'), (tr, lang) => ({
+        await notify(app, await staffWith(app.db, 'payments:review'), (tr, lang) => ({
           kind: 'payment_review',
           title: tr(form.method === 'proof' ? 'Payment proof to review' : 'In-person payment announced'),
           body: `${shortName(viewer.user.fullName)} · ${paymentLabel(payment, lang)} · ${formatMoney(payment.amount, viewer.settings.currency)}`,

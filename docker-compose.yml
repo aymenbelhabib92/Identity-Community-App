@@ -36,6 +36,8 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_NAME: ${ADMIN_NAME:-Club Admin}
       GEOCODER_EMAIL: ${GEOCODER_EMAIL:-}
+      # Identifies the club to the push services (Google, Apple, Mozilla, Microsoft).
+      PUBLIC_URL: https://${SITE_ADDRESS:-localhost}
     volumes:
       - uploads:/data/uploads
     expose:

@@ -198,6 +198,32 @@ export const FR: Record<string, string> = {
   'View the photo': 'Voir la photo',
   Photo: 'Photo',
 
+  // ─── Push notifications ────────────────────────────────────────────────────
+  'Turn on notifications': 'Activer les notifications',
+  'Meetups, payments and club news': 'Rencontres, paiements et nouvelles du club',
+  'Turn on': 'Activer',
+  Blocked: 'Bloquées',
+  'Not available': 'Indisponibles',
+  'Notifications are not available in this browser.': 'Les notifications ne sont pas disponibles dans ce navigateur.',
+  'Notifications are blocked. Allow them in the settings of your phone or browser.':
+    'Les notifications sont bloquées. Autorisez-les dans les réglages de votre téléphone ou de votre navigateur.',
+  'Notifications were not turned on.': "Les notifications n'ont pas été activées.",
+  'This device receives a notification for meetups, payments, your membership and club news.':
+    'Cet appareil reçoit une notification pour les rencontres, les paiements, votre adhésion et les nouvelles du club.',
+  'Get a notification on this device for meetups, payments, your membership and club news.':
+    'Recevez une notification sur cet appareil pour les rencontres, les paiements, votre adhésion et les nouvelles du club.',
+  'On iPhone and iPad, notifications work in the installed app: add Identity to your Home Screen (Share › Add to Home Screen), then open it from there.':
+    "Sur iPhone et iPad, les notifications fonctionnent dans l'application installée : ajoutez Identity à votre écran d'accueil (Partager › Sur l'écran d'accueil), puis ouvrez-la depuis l'icône.",
+  'Notifications are blocked for Identity. Allow them in the settings of your phone (Settings › Notifications › Identity) or of your browser, then come back.':
+    'Les notifications sont bloquées pour Identity. Autorisez-les dans les réglages de votre téléphone (Réglages › Notifications › Identity) ou de votre navigateur, puis revenez ici.',
+  'This browser cannot receive notifications. Install the app, or use Chrome, Edge, Firefox or Safari.':
+    "Ce navigateur ne peut pas recevoir de notifications. Installez l'application, ou utilisez Chrome, Edge, Firefox ou Safari.",
+  'Send a test notification': 'Envoyer une notification de test',
+  'Test sent to {count} device': 'Test envoyé à {count} appareil',
+  'Test sent to {count} devices': 'Test envoyé à {count} appareils',
+  'Turn off on this device': 'Désactiver sur cet appareil',
+  'Notifications are off on this device': 'Notifications désactivées sur cet appareil',
+
   // ─── Pass, membership, payments ────────────────────────────────────────────
   Membership: 'Adhésion',
   'Member pass': 'Pass membre',

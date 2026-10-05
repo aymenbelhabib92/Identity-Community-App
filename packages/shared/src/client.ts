@@ -31,6 +31,9 @@ import type {
   PasswordReset,
   Payment,
   Place,
+  PushKey,
+  PushSubscriptionBody,
+  PushTestResult,
   RecordPaymentBody,
   RegisterBody,
   ReviewPaymentBody,
@@ -214,6 +217,15 @@ export function createApiClient(options: ApiClientOptions) {
     notifications: {
       list: () => get<NotificationList>('/notifications'),
       markAllRead: () => json<Ok>('POST', '/notifications/read-all'),
+    },
+
+    push: {
+      key: () => get<PushKey>('/push/key'),
+      /** Registers this device for push notifications (moves it to this account if needed). */
+      subscribe: (body: PushSubscriptionBody) => json<Ok>('PUT', '/push/subscription', { body }),
+      unsubscribe: (endpoint: string) => json<Ok>('DELETE', '/push/subscription', { body: { endpoint } }),
+      /** Sends a test notification to every device of the signed-in member. */
+      test: () => json<PushTestResult>('POST', '/push/test'),
     },
 
     map: {

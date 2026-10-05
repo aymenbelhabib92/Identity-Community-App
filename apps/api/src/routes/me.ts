@@ -14,7 +14,7 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { Db } from '../db/client';
-import { memberLocations, users } from '../db/schema';
+import { memberLocations, pushSubscriptions, users } from '../db/schema';
 import { AppError, conflict, fieldError } from '../errors';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { requireAccess, signAccessToken } from '../plugins/auth';
@@ -82,6 +82,8 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         })
         .where(eq(users.id, viewer.id))
         .returning();
+      // Signed-out devices stop receiving notifications; this one registers again.
+      await app.db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, viewer.id));
       return { token: signAccessToken(app, user!), user: toUserDto(user!, viewer) };
     },
   );
@@ -94,6 +96,7 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         .update(users)
         .set({ tokenVersion: sql`${users.tokenVersion} + 1` })
         .where(eq(users.id, request.viewer.id));
+      await app.db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, request.viewer.id));
       return { ok: true as const };
     },
   );

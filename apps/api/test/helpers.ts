@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { AuthResponse, Role } from '@identity/shared';
 import { buildApp, type App } from '../src/app';
+import type { PushTransport } from '../src/services/push';
 
 export const ADMIN = { phone: '+21690000001', password: 'admin-pass-123' };
 
@@ -33,7 +34,10 @@ async function wipeDatabase(url: string): Promise<void> {
 }
 
 /** A fresh API on an in-memory Postgres (PGlite), with a controllable clock. */
-export async function createTestApp(now = new Date('2026-09-28T16:00:00Z')): Promise<TestContext> {
+export async function createTestApp(
+  now = new Date('2026-09-28T16:00:00Z'),
+  options: { pushTransport?: PushTransport } = {},
+): Promise<TestContext> {
   const clock = { current: now };
   const uploadDir = await mkdtemp(path.join(os.tmpdir(), 'identity-test-'));
   if (testDatabaseUrl) await wipeDatabase(testDatabaseUrl);
@@ -48,6 +52,8 @@ export async function createTestApp(now = new Date('2026-09-28T16:00:00Z')): Pro
       bootstrapAdmin: { ...ADMIN, name: 'Test Admin' },
     },
     now: () => clock.current,
+    // No real push service in tests: sending succeeds without leaving the machine.
+    pushTransport: options.pushTransport ?? (async () => {}),
   });
   return {
     app,

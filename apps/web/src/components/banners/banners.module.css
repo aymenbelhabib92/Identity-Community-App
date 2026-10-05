@@ -9,7 +9,7 @@
   padding: 0 12px;
   pointer-events: none;
   /* Stays in place while screens slide (global.css, screen transitions). */
-  view-transition-name: install-banner;
+  view-transition-name: top-banner;
 }
 
 .banner {
@@ -35,6 +35,19 @@
   border-radius: 11px;
 }
 
+/* Notifications banner: a bell on a red tile, like the notification icons of the phone. */
+.bell {
+  display: grid;
+  place-items: center;
+  background: var(--red);
+  color: #fff;
+}
+
+.bell svg {
+  width: 24px;
+  height: 24px;
+}
+
 .text {
   flex: 1;
   min-width: 0;
@@ -54,8 +67,9 @@
   color: var(--text-2);
 }
 
-.install {
+.action {
   flex: none;
+  min-width: 64px;
   height: 32px;
   padding: 0 14px;
   border-radius: 16px;
@@ -65,8 +79,12 @@
   font-weight: 700;
 }
 
-.install:active {
+.action:active {
   opacity: 0.8;
+}
+
+.action:disabled {
+  opacity: 0.6;
 }
 
 .close {

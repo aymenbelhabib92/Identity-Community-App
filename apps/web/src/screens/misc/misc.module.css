@@ -114,6 +114,13 @@ button.notification:active {
   height: 16px;
 }
 
+.sheetText {
+  margin: 0 4px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
 .photoPreview {
   display: grid;
   place-items: center;

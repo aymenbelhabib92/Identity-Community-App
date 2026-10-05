@@ -8,7 +8,13 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/favicon.svg', 'icons/favicon-32.png', 'icons/apple-touch-icon.png', 'brand/shards.webp'],
+      includeAssets: [
+        'icons/favicon.svg',
+        'icons/favicon-32.png',
+        'icons/apple-touch-icon.png',
+        'icons/badge-96.png',
+        'brand/shards.webp',
+      ],
       manifest: {
         id: '/',
         name: 'Identity Car Community',
@@ -32,6 +38,8 @@ export default defineConfig(({ mode }) => {
         prefer_related_applications: false,
       },
       workbox: {
+        // Push notifications: shows them and opens their page when tapped.
+        importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,webp}'],

@@ -3,6 +3,7 @@ import type { Config } from './config';
 import type { Db } from './db/client';
 import type { UserRow } from './db/schema';
 import type { Storage } from './lib/storage';
+import type { PushService } from './services/push';
 import type { SettingsStore } from './services/settings';
 
 /** The signed-in member, resolved once per request. */
@@ -43,6 +44,7 @@ declare module 'fastify' {
     storage: Storage;
     clubSettings: SettingsStore;
     clock: Clock;
+    push: PushService;
   }
 
   interface FastifyRequest {

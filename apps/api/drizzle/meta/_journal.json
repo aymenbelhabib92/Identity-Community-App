@@ -15,6 +15,13 @@
       "when": 1790854507168,
       "tag": "0001_photos_presence_language",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791222827655,
+      "tag": "0002_push_subscriptions",
+      "breakpoints": true
     }
   ]
 }

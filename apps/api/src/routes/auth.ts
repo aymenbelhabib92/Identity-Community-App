@@ -67,7 +67,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!user) throw new Error('Insert returned no row');
       const member = user;
 
-      await notify(app.db, await staffWith(app.db, 'payments:review'), (tr) => ({
+      await notify(app, await staffWith(app.db, 'payments:review'), (tr) => ({
         kind: 'membership',
         title: tr('New membership request'),
         body: `${member.fullName} · ${formatPhone(member.phone)}`,

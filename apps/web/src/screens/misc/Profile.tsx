@@ -5,11 +5,14 @@ import {
   LANGUAGE_NAMES,
   LANGUAGES,
   t,
+  tn,
   type Language,
   type User,
 } from '@identity/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  BellOff,
+  BellRing,
   Book,
   Camera,
   CarFront,
@@ -21,6 +24,7 @@ import {
   LogOut,
   MonitorSmartphone,
   Pencil,
+  Send,
   Shield,
   SunMoon,
   Trash2,
@@ -51,13 +55,30 @@ import { errorMessage, fieldErrors } from '../../lib/errors';
 import { useInstallStatus } from '../../lib/install';
 import { photoForm, preparePhoto } from '../../lib/photos';
 import { changeLanguage, changeTheme, THEMES, useLanguage, useTheme, type Theme } from '../../lib/preferences';
+import { disablePush, enablePush, usePushStatus, type PushState } from '../../lib/push';
 import { keys } from '../../lib/queries';
 import s from './misc.module.css';
 
 /** English source texts, translated when displayed. */
 const THEME_LABELS: Record<Theme, string> = { dark: 'Dark', light: 'Light', system: 'Automatic' };
 
-type SheetName = 'photo' | 'edit' | 'password' | 'language' | 'theme' | 'install' | null;
+type SheetName = 'photo' | 'edit' | 'password' | 'language' | 'theme' | 'notifications' | 'install' | null;
+
+function pushLabel(state: PushState): string {
+  switch (state) {
+    case 'on':
+      return t('On');
+    case 'off':
+    case 'needs-install':
+      return t('Off');
+    case 'denied':
+      return t('Blocked');
+    case 'unsupported':
+      return t('Not available');
+    case 'checking':
+      return '…';
+  }
+}
 
 /**
  * The account screen, opened from the avatar at the top right of Home: profile
@@ -72,6 +93,7 @@ export default function Profile() {
   const install = useInstallStatus();
   const language = useLanguage();
   const theme = useTheme();
+  const push = usePushStatus();
   const [sheet, setSheet] = useState<SheetName>(null);
   const close = () => setSheet(null);
 
@@ -139,6 +161,13 @@ export default function Profile() {
           onClick={() => setSheet('theme')}
           chevron
         />
+        <ListRow
+          tile={{ icon: <BellRing />, color: 'red' }}
+          title={t('Notifications')}
+          value={pushLabel(push.state)}
+          onClick={() => setSheet('notifications')}
+          chevron
+        />
       </List>
 
       <SectionHeader>{t('Account')}</SectionHeader>
@@ -179,6 +208,7 @@ export default function Profile() {
       <PasswordSheet open={sheet === 'password'} onClose={close} />
       <LanguageSheet open={sheet === 'language'} onClose={close} user={user} />
       <ThemeSheet open={sheet === 'theme'} onClose={close} />
+      <NotificationsSheet open={sheet === 'notifications'} onClose={close} />
       <InstallHelpSheet open={sheet === 'install'} onClose={close} platform={install.platform} />
     </Screen>
   );
@@ -271,6 +301,75 @@ function LanguageSheet({ open, onClose, user }: { open: boolean; onClose: () => 
         ))}
       </List>
       <SectionFooter>{t('Notifications are written in this language too.')}</SectionFooter>
+    </Sheet>
+  );
+}
+
+/** Push notifications on this device: turn on / off, send a test, or why they are unavailable. */
+function NotificationsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { state } = usePushStatus();
+  const toast = useToast();
+  const [busy, setBusy] = useState<'on' | 'off' | 'test' | null>(null);
+  const run = (kind: 'on' | 'off' | 'test', action: () => Promise<string>) => {
+    setBusy(kind);
+    action()
+      .then((message) => toast(message, 'success'))
+      .catch((error: unknown) => toast(errorMessage(error), 'error'))
+      .finally(() => setBusy(null));
+  };
+
+  const explanation = {
+    checking: null,
+    on: t('This device receives a notification for meetups, payments, your membership and club news.'),
+    off: t('Get a notification on this device for meetups, payments, your membership and club news.'),
+    'needs-install': t(
+      'On iPhone and iPad, notifications work in the installed app: add Identity to your Home Screen (Share › Add to Home Screen), then open it from there.',
+    ),
+    denied: t(
+      'Notifications are blocked for Identity. Allow them in the settings of your phone (Settings › Notifications › Identity) or of your browser, then come back.',
+    ),
+    unsupported: t('This browser cannot receive notifications. Install the app, or use Chrome, Edge, Firefox or Safari.'),
+  }[state];
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('Notifications')}>
+      <div className={s.form}>
+        {explanation && <p className={s.sheetText}>{explanation}</p>}
+        {state === 'off' && (
+          <Button
+            icon={<BellRing aria-hidden />}
+            loading={busy === 'on'}
+            onClick={() => run('on', () => enablePush().then(() => t('Notifications are on')))}
+          >
+            {t('Turn on notifications')}
+          </Button>
+        )}
+        {state === 'on' && (
+          <>
+            <Button
+              variant="secondary"
+              icon={<Send aria-hidden />}
+              loading={busy === 'test'}
+              onClick={() =>
+                run('test', async () => {
+                  const { devices } = await api.push.test();
+                  return tn(devices, 'Test sent to {count} device', 'Test sent to {count} devices');
+                })
+              }
+            >
+              {t('Send a test notification')}
+            </Button>
+            <Button
+              variant="danger"
+              icon={<BellOff aria-hidden />}
+              loading={busy === 'off'}
+              onClick={() => run('off', () => disablePush().then(() => t('Notifications are off on this device')))}
+            >
+              {t('Turn off on this device')}
+            </Button>
+          </>
+        )}
+      </div>
     </Sheet>
   );
 }

@@ -21,6 +21,7 @@ import { openDatabase, type Database } from './db/client';
 import { AppError } from './errors';
 import { createLocalStorage, type Storage } from './lib/storage';
 import { apiRoutes } from './routes';
+import { loadVapidKeys, PushService, webPushTransport, type PushTransport } from './services/push';
 import { SettingsStore } from './services/settings';
 import type { Viewer } from './types';
 import './types';
@@ -31,6 +32,8 @@ export interface BuildAppOptions {
   now?: () => Date;
   database?: Database;
   storage?: Storage;
+  /** Replaces the Web Push sender (tests). */
+  pushTransport?: PushTransport;
 }
 
 export async function buildApp(options: BuildAppOptions = {}) {
@@ -62,12 +65,23 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.decorate('storage', options.storage ?? createLocalStorage(config.uploadDir));
   app.decorate('clubSettings', new SettingsStore(database.db));
   app.decorate('clock', { now: options.now ?? (() => new Date()) });
+  const vapid = await loadVapidKeys(database.db, config);
+  const push = new PushService({
+    db: database.db,
+    publicKey: vapid.publicKey,
+    transport: options.pushTransport ?? webPushTransport(vapid),
+    log: app.log,
+  });
+  app.decorate('push', push);
   app.decorateRequest('viewer', null as unknown as Viewer);
   app.decorateRequest('lang', DEFAULT_LANGUAGE);
   app.addHook('onRequest', async (request) => {
     request.lang = pickLanguage(request.headers['accept-language']) ?? DEFAULT_LANGUAGE;
   });
-  app.addHook('onClose', async () => database.close());
+  app.addHook('onClose', async () => {
+    await push.flush();
+    await database.close();
+  });
 
   // JSON API only: the web app's CSP is set by the web server.
   await app.register(helmet, { contentSecurityPolicy: false });
