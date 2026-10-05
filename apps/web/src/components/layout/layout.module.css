@@ -40,6 +40,30 @@
   color: var(--blue);
 }
 
+.tabIcon {
+  position: relative;
+}
+
+/* Unread chat messages. */
+.tabBadge {
+  position: absolute;
+  top: -5px;
+  left: calc(100% - 9px);
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--red);
+  box-shadow: 0 0 0 2px var(--bg);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
 .fullscreen {
   display: grid;
   place-items: center;

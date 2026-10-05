@@ -15,12 +15,13 @@ same routes.
 | **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
 | **Club** | Announcements, club rules, notifications in the app and as **push notifications** on the phone | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
+| **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
 | **Preferences** | English or French (the phone's language by default, remembered on the account), dark / light / automatic theme | — |
 
 Roles: **member**, **organizer** (meetups, announcements, pass checks), **treasurer** (payments),
 **admin** (everything, roles, settings).
 
-Navigation: three tabs (Home, Map, Meetups). The avatar at the top right of Home opens the
+Navigation: four tabs (Home, Map, Meetups, Chat). The avatar at the top right of Home opens the
 **account** screen: pass and membership, profile, car, language, theme, password, admin tools.
 
 ## Architecture
@@ -58,6 +59,13 @@ docker/       Caddyfile (web server + HTTPS + /api proxy)
   On iPhone (iOS 16.4+), notifications work once the app is installed on the Home Screen. They
   need HTTPS, so they are not available with `npm run dev` (no service worker): use
   `npm run build -w @identity/web && npm run preview -w @identity/web`.
+- **Chat:** messages are kept in the database (`chat_messages`; a deleted message keeps its place
+  without its text). While the Chat screen is open and the app in the foreground, it receives new
+  and deleted messages live through Server-Sent Events (`GET /api/v1/chat/stream`, excluded from
+  compression in the Caddyfile) and reloads what it missed after a lost connection. A member
+  reading the chat gets no push for it; otherwise mentions and replies are pushed one by one, and
+  members who chose "all messages" get one grouped notification at most every 3 minutes
+  (`CHAT_PUSH_INTERVAL_MINUTES`). Chat messages never go to the bell.
 
 ## Getting started (development)
 
@@ -128,6 +136,8 @@ Run the API tests against a real PostgreSQL server with
   max).
 - **Presence:** "online" means the app talked to the server in the last 5 minutes. Other members
   see that green dot; the membership state of a member is shown to staff only.
+- **Chat:** readable and writable by members with access only (active, or dues due during the
+  grace period); sending is limited to 30 messages a minute per member.
 - **Secret meetups:** the API never sends the meeting point before the reveal time, and only to
   members who confirmed (plus staff). Members without an active membership do not see secret
   meetups at all.

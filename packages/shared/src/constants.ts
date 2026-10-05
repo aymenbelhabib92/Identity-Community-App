@@ -23,6 +23,17 @@ export const CAR_PHOTOS_MAX = 4;
 /** A member counts as online when the app talked to the server within this delay. */
 export const ONLINE_WINDOW_MINUTES = 5;
 
+/**
+ * Push notifications for the club chat, chosen by each member:
+ * - off:      none
+ * - mentions: when someone mentions them (@Name) or replies to them
+ * - all:      every message too, grouped (at most one every CHAT_PUSH_INTERVAL_MINUTES)
+ */
+export const CHAT_NOTIFICATION_MODES = ['off', 'mentions', 'all'] as const;
+export type ChatNotificationMode = (typeof CHAT_NOTIFICATION_MODES)[number];
+export const CHAT_PUSH_INTERVAL_MINUTES = 3;
+export const CHAT_MESSAGE_MAX_LENGTH = 1_000;
+
 export const MEMBER_FILTERS =['all', 'pending', 'active', 'due', 'expired', 'suspended', 'staff'] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 

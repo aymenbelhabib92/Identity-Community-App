@@ -14,6 +14,11 @@ import type {
   Attendee,
   AuthResponse,
   ChangePasswordBody,
+  ChatListQuery,
+  ChatMessage,
+  ChatMessageList,
+  ChatPostBody,
+  ChatUnread,
   ErrorResponse,
   LocationUpdateBody,
   LoginBody,
@@ -23,6 +28,7 @@ import type {
   MeetupCreateBody,
   MeetupListQuery,
   MeetupUpdateBody,
+  MemberRef,
   Membership,
   MyLocation,
   NotificationList,
@@ -94,7 +100,7 @@ export function createApiClient(options: ApiClientOptions) {
   async function send(
     method: string,
     path: string,
-    init: { body?: unknown; query?: Query; form?: FormData } = {},
+    init: { body?: unknown; query?: Query; form?: FormData; signal?: AbortSignal } = {},
   ): Promise<Response> {
     let url = baseUrl + path;
     if (init.query) {
@@ -122,8 +128,9 @@ export function createApiClient(options: ApiClientOptions) {
 
     let response: Response;
     try {
-      response = await doFetch(url, { method, headers, body });
-    } catch {
+      response = await doFetch(url, { method, headers, body, signal: init.signal });
+    } catch (err) {
+      if (init.signal?.aborted) throw err;
       throw new ApiError(0, 'NETWORK', t('Cannot reach the server. Check your connection.'));
     }
 
@@ -217,6 +224,22 @@ export function createApiClient(options: ApiClientOptions) {
     notifications: {
       list: () => get<NotificationList>('/notifications'),
       markAllRead: () => json<Ok>('POST', '/notifications/read-all'),
+    },
+
+    chat: {
+      messages: (query?: ChatListQuery) => get<ChatMessageList>('/chat/messages', query),
+      send: (body: ChatPostBody) => json<ChatMessage>('POST', '/chat/messages', { body }),
+      remove: (messageId: string) => json<ChatMessage>('DELETE', `/chat/messages/${id(messageId)}`),
+      /** Marks everything as read (the Chat tab badge). */
+      read: () => json<ChatUnread>('POST', '/chat/read'),
+      unread: () => get<ChatUnread>('/chat/unread'),
+      /** Members who can be mentioned with @Name. */
+      members: () => get<Items<MemberRef>>('/chat/members'),
+      /**
+       * Live messages as Server-Sent Events (`message`, `deleted`) for as long as
+       * the response body is read. Abort `signal` to close it.
+       */
+      stream: (signal: AbortSignal) => send('GET', '/chat/stream', { signal }),
     },
 
     push: {

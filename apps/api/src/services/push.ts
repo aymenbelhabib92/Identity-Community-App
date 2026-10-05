@@ -12,6 +12,8 @@ export interface PushMessage {
   /** In-app path opened when the notification is tapped. */
   link: string | null;
   kind: string;
+  /** Notifications with the same tag replace each other on the phone (grouped chat messages). */
+  tag?: string;
 }
 
 export interface PushTarget {
@@ -82,14 +84,19 @@ export class PushService {
 
   queue(messages: readonly { userId: string; message: PushMessage }[]): void {
     if (messages.length === 0) return;
-    const task = this.deliver(messages).catch((err: unknown) => this.log.error({ err }, 'push delivery failed'));
-    this.pending.add(task);
-    void task.finally(() => this.pending.delete(task));
+    this.track(this.deliver(messages));
   }
 
-  /** Waits for the messages queued so far (tests, shutdown). */
+  /** Runs `task` in the background (preparing messages, then queueing them); `flush` waits for it. */
+  track(task: Promise<void>): void {
+    const tracked = task.catch((err: unknown) => this.log.error({ err }, 'push delivery failed'));
+    this.pending.add(tracked);
+    void tracked.finally(() => this.pending.delete(tracked));
+  }
+
+  /** Waits for the messages queued so far, including those queued by tracked tasks (tests, shutdown). */
   async flush(): Promise<void> {
-    await Promise.all([...this.pending]);
+    while (this.pending.size > 0) await Promise.all([...this.pending]);
   }
 
   /** Sends now to every device of `userId`; resolves with the number of devices reached. */

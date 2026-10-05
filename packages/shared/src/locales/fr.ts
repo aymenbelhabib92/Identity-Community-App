@@ -165,6 +165,17 @@ Ne partagez rien sur le lieu en dehors du club.`,
   'Announcement from the admin': "Annonce de l'admin",
   'Announcement from the club': 'Annonce du club',
 
+  // ─── Club chat ─────────────────────────────────────────────────────────────
+  'Write a message': 'Écrivez un message',
+  'This message no longer exists.': "Ce message n'existe plus.",
+  'Message not found': 'Message introuvable',
+  '{name} mentioned you': '{name} vous a mentionné',
+  '{name} replied to you': '{name} vous a répondu',
+  'Club chat': 'Chat du club',
+  '{count} new message': '{count} nouveau message',
+  '{count} new messages': '{count} nouveaux messages',
+  '{name}: {text}': '{name} : {text}',
+
   // ─── Push notifications ────────────────────────────────────────────────────
   'Notifications are on': 'Les notifications sont activées',
   'You will be told here about meetups, payments and club news.':

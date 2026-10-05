@@ -1,7 +1,8 @@
 /*
  * Push notifications of the Identity app. Loaded by the generated service worker
- * (importScripts, see vite.config.ts). The server sends { title, body, link, kind }
- * (apps/api/src/services/push.ts).
+ * (importScripts, see vite.config.ts). The server sends { title, body, link, kind, tag? }
+ * (apps/api/src/services/push.ts). Notifications sharing a tag (the grouped chat
+ * one) replace each other instead of piling up.
  */
 
 self.addEventListener('push', (event) => {
@@ -18,6 +19,7 @@ self.addEventListener('push', (event) => {
       // Android status bar: a white silhouette.
       badge: '/icons/badge-96.png',
       data: { link: message.link || '/notifications' },
+      ...(message.tag && { tag: message.tag, renotify: true }),
     }),
   );
 });

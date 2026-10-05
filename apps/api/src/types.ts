@@ -3,6 +3,7 @@ import type { Config } from './config';
 import type { Db } from './db/client';
 import type { UserRow } from './db/schema';
 import type { Storage } from './lib/storage';
+import type { ChatHub } from './services/chat';
 import type { PushService } from './services/push';
 import type { SettingsStore } from './services/settings';
 
@@ -45,6 +46,7 @@ declare module 'fastify' {
     clubSettings: SettingsStore;
     clock: Clock;
     push: PushService;
+    chat: ChatHub;
   }
 
   interface FastifyRequest {

@@ -3,7 +3,9 @@
 # SITE_ADDRESS: your domain (e.g. club.example.com), or "localhost" to try locally.
 
 {$SITE_ADDRESS:localhost} {
-	encode zstd gzip
+	# The live chat (Server-Sent Events) must reach the app as it is written, uncompressed.
+	@compressible not path /api/v1/chat/stream
+	encode @compressible zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

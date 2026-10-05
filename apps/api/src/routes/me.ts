@@ -43,13 +43,14 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
     { schema: { tags: ['me'], summary: 'Update profile', body: updateMeBodySchema, response: { 200: userSchema } } },
     async (request) => {
       const { viewer } = request;
-      const { fullName, car, language } = request.body;
+      const { fullName, car, language, chatNotifications } = request.body;
       const [user] = await app.db
         .update(users)
         .set({
           ...(fullName !== undefined && { fullName }),
           ...(car !== undefined && { car: car || null }),
           ...(language !== undefined && { language }),
+          ...(chatNotifications !== undefined && { chatNotifications }),
         })
         .where(eq(users.id, viewer.id))
         .returning();

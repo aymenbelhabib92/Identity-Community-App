@@ -1,5 +1,6 @@
 import type {
   AnnouncementAudience,
+  ChatNotificationMode,
   Language,
   MeetupVisibility,
   MemberStatus,
@@ -10,6 +11,7 @@ import type {
 } from '@identity/shared';
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   date,
   doublePrecision,
@@ -46,6 +48,10 @@ export const users = pgTable('users', {
   language: text('language').$type<Language>(),
   /** Last authenticated request, refreshed at most once a minute. */
   lastSeenAt: timestamptz('last_seen_at'),
+  /** Club chat: push notifications wanted, last read time (unread badge), last grouped push sent. */
+  chatNotifications: text('chat_notifications').$type<ChatNotificationMode>().notNull().default('mentions'),
+  chatReadAt: timestamptz('chat_read_at'),
+  chatPushedAt: timestamptz('chat_pushed_at'),
   role: text('role').$type<Role>().notNull().default('member'),
   status: text('status').$type<MemberStatus>().notNull().default('pending'),
   /** Assigned when the membership is first activated. */
@@ -184,6 +190,23 @@ export const notifications = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** The club chat. Deleted messages keep their row (replies still point to them) but lose their text. */
+export const chatMessages = pgTable(
+  'chat_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    replyToId: uuid('reply_to_id').references((): AnyPgColumn => chatMessages.id, { onDelete: 'set null' }),
+    mentions: jsonb('mentions').$type<string[]>().notNull().default([]),
+    deletedAt: timestamptz('deleted_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('chat_messages_created_at_idx').on(t.createdAt)],
 );
 
 /**

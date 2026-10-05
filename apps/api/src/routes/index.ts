@@ -3,6 +3,7 @@ import { authenticate } from '../plugins/auth';
 import { adminRoutes } from './admin';
 import { announcementRoutes } from './announcements';
 import { authRoutes } from './auth';
+import { chatRoutes } from './chat';
 import { geoRoutes } from './geo';
 import { mapRoutes } from './map';
 import { meRoutes } from './me';
@@ -29,6 +30,7 @@ export const apiRoutes: FastifyPluginAsyncZod = async (app) => {
     await secured.register(passRoutes);
     await secured.register(photoRoutes);
     await secured.register(pushRoutes);
+    await secured.register(chatRoutes);
     await secured.register(adminRoutes, { prefix: '/admin' });
   });
 };

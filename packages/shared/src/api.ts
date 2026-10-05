@@ -7,6 +7,8 @@
 import { z } from 'zod';
 import {
   ANNOUNCEMENT_AUDIENCES,
+  CHAT_MESSAGE_MAX_LENGTH,
+  CHAT_NOTIFICATION_MODES,
   LOCATION_STATUSES,
   MEETUP_STATUSES,
   MEETUP_VISIBILITIES,
@@ -67,6 +69,8 @@ export const userSchema = z.object({
   language: languageSchema.nullable(),
   /** Used the app within the last few minutes (see ONLINE_WINDOW_MINUTES). */
   online: z.boolean(),
+  /** Push notifications for the club chat (see CHAT_NOTIFICATION_MODES). */
+  chatNotifications: z.enum(CHAT_NOTIFICATION_MODES),
   role: roleSchema,
   status: memberStatusSchema,
   state: membershipStateSchema,
@@ -117,6 +121,7 @@ export const updateMeBodySchema = z.object({
   fullName: fullNameInput.optional(),
   car: carInput.nullable().optional(),
   language: languageSchema.optional(),
+  chatNotifications: z.enum(CHAT_NOTIFICATION_MODES).optional(),
 });
 export type UpdateMeBody = z.infer<typeof updateMeBodySchema>;
 
@@ -384,6 +389,57 @@ export const notificationListSchema = z.object({
   unread: z.number().int(),
 });
 export type NotificationList = z.infer<typeof notificationListSchema>;
+
+// ─── Club chat ───────────────────────────────────────────────────────────────
+
+export const chatMessageSchema = z.object({
+  id: idSchema,
+  author: memberRefSchema,
+  /** Empty once deleted. */
+  body: z.string(),
+  /** Members mentioned with @Name. */
+  mentions: z.array(idSchema),
+  replyTo: z
+    .object({
+      id: idSchema,
+      authorName: z.string(),
+      /** Start of the message replied to; empty if it was deleted. */
+      excerpt: z.string(),
+    })
+    .nullable(),
+  deleted: z.boolean(),
+  createdAt: timestampSchema,
+});
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
+
+export const chatMessageListSchema = z.object({
+  /** Oldest first. */
+  items: z.array(chatMessageSchema),
+  /** Older messages exist (load them with `before`). */
+  hasMore: z.boolean(),
+});
+export type ChatMessageList = z.infer<typeof chatMessageListSchema>;
+
+export const chatListQuerySchema = z.object({
+  /** Messages sent before this time (scrolling back), or after it (catching up after a reconnection). */
+  before: timestampSchema.optional(),
+  after: timestampSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type ChatListQuery = Partial<z.infer<typeof chatListQuerySchema>>;
+
+export const chatPostBodySchema = z.object({
+  body: z.string().trim().min(1, 'Write a message').max(CHAT_MESSAGE_MAX_LENGTH),
+  replyToId: idSchema.optional(),
+  mentions: z.array(idSchema).max(20).optional(),
+});
+export type ChatPostBody = z.infer<typeof chatPostBodySchema>;
+
+export const chatUnreadSchema = z.object({ unread: z.number().int() });
+export type ChatUnread = z.infer<typeof chatUnreadSchema>;
+
+/** Members who can be mentioned. */
+export const chatMemberListSchema = items(memberRefSchema);
 
 // ─── Push notifications ──────────────────────────────────────────────────────
 

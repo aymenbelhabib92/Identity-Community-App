@@ -6,6 +6,7 @@ import { enableScreenTransitions } from './lib/transitions';
 import Join from './screens/auth/Join';
 import SignIn from './screens/auth/SignIn';
 import Welcome from './screens/auth/Welcome';
+import Chat from './screens/chat/Chat';
 import Home from './screens/home/Home';
 import MeetupDetail from './screens/meetups/MeetupDetail';
 import Car from './screens/misc/Car';
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
       { path: '/meetups/new', element: <MeetupForm /> },
       { path: '/meetups/:id', element: <MeetupDetail /> },
       { path: '/meetups/:id/edit', element: <MeetupForm /> },
+      { path: '/chat', element: <Chat /> },
       { path: '/pass', element: <Pass /> },
       { path: '/pass/pay', element: <PaymentScreen /> },
       { path: '/rules', element: <Rules /> },

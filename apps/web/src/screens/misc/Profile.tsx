@@ -1,4 +1,6 @@
 import {
+  CHAT_NOTIFICATION_MODES,
+  CHAT_PUSH_INTERVAL_MINUTES,
   formatBadgeNumber,
   formatIsoDate,
   formatPhone,
@@ -6,6 +8,7 @@ import {
   LANGUAGES,
   t,
   tn,
+  type ChatNotificationMode,
   type Language,
   type User,
 } from '@identity/shared';
@@ -22,6 +25,7 @@ import {
   KeyRound,
   Languages,
   LogOut,
+  MessageCircle,
   MonitorSmartphone,
   Pencil,
   Send,
@@ -62,7 +66,15 @@ import s from './misc.module.css';
 /** English source texts, translated when displayed. */
 const THEME_LABELS: Record<Theme, string> = { dark: 'Dark', light: 'Light', system: 'Automatic' };
 
-type SheetName = 'photo' | 'edit' | 'password' | 'language' | 'theme' | 'notifications' | 'install' | null;
+const CHAT_MODE_LABELS: Record<ChatNotificationMode, string> = {
+  all: 'All messages',
+  mentions: 'Mentions and replies',
+  off: 'Off',
+};
+/** Shorter, for the row of the account screen. */
+const CHAT_MODE_VALUES: Record<ChatNotificationMode, string> = { all: 'All', mentions: 'Mentions', off: 'Off' };
+
+type SheetName = 'photo' | 'edit' | 'password' | 'language' | 'theme' | 'notifications' | 'chat' | 'install' | null;
 
 function pushLabel(state: PushState): string {
   switch (state) {
@@ -168,6 +180,15 @@ export default function Profile() {
           onClick={() => setSheet('notifications')}
           chevron
         />
+        {user.hasAccess && (
+          <ListRow
+            tile={{ icon: <MessageCircle />, color: 'blue' }}
+            title={t('Chat notifications')}
+            value={t(CHAT_MODE_VALUES[user.chatNotifications])}
+            onClick={() => setSheet('chat')}
+            chevron
+          />
+        )}
       </List>
 
       <SectionHeader>{t('Account')}</SectionHeader>
@@ -209,6 +230,7 @@ export default function Profile() {
       <LanguageSheet open={sheet === 'language'} onClose={close} user={user} />
       <ThemeSheet open={sheet === 'theme'} onClose={close} />
       <NotificationsSheet open={sheet === 'notifications'} onClose={close} />
+      <ChatNotificationsSheet open={sheet === 'chat'} onClose={close} user={user} pushOn={push.state === 'on'} />
       <InstallHelpSheet open={sheet === 'install'} onClose={close} platform={install.platform} />
     </Screen>
   );
@@ -370,6 +392,52 @@ function NotificationsSheet({ open, onClose }: { open: boolean; onClose: () => v
           </>
         )}
       </div>
+    </Sheet>
+  );
+}
+
+/** Which chat messages send a push notification (saved on the account, for all devices). */
+function ChatNotificationsSheet({ open, onClose, user, pushOn }: { open: boolean; onClose: () => void; user: User; pushOn: boolean }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const choose = (mode: ChatNotificationMode) => {
+    onClose();
+    if (mode === user.chatNotifications) return;
+    queryClient.setQueryData(keys.me, { ...user, chatNotifications: mode });
+    api.me.update({ chatNotifications: mode }).then(
+      (updated) => queryClient.setQueryData(keys.me, updated),
+      (error: unknown) => {
+        queryClient.setQueryData(keys.me, user);
+        toast(errorMessage(error), 'error');
+      },
+    );
+  };
+
+  const descriptions: Record<ChatNotificationMode, string> = {
+    all: t('Grouped: one notification at most every {minutes} minutes', { minutes: CHAT_PUSH_INTERVAL_MINUTES }),
+    mentions: t('When someone writes @your name or replies to you'),
+    off: t('Never for the chat'),
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('Chat notifications')}>
+      <List>
+        {CHAT_NOTIFICATION_MODES.map((mode) => (
+          <ListRow
+            key={mode}
+            title={t(CHAT_MODE_LABELS[mode])}
+            subtitle={descriptions[mode]}
+            onClick={() => choose(mode)}
+            trailing={mode === user.chatNotifications ? <Check className={s.check} aria-hidden strokeWidth={3} /> : undefined}
+          />
+        ))}
+      </List>
+      <SectionFooter>
+        {pushOn
+          ? t('Nothing is sent while you are reading the chat.')
+          : t('Turn on notifications for this device too (Notifications, just above).')}
+      </SectionFooter>
     </Sheet>
   );
 }

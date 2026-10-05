@@ -23,6 +23,8 @@ export const PERMISSIONS = {
   'members:manage': ['admin'],
   'settings:manage': ['admin'],
   'pass:verify': ['organizer', 'treasurer', 'admin'],
+  /** Delete anyone's chat messages (members can always delete their own). */
+  'chat:moderate': ['admin'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

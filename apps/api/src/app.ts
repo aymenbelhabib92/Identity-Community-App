@@ -21,6 +21,7 @@ import { openDatabase, type Database } from './db/client';
 import { AppError } from './errors';
 import { createLocalStorage, type Storage } from './lib/storage';
 import { apiRoutes } from './routes';
+import { ChatHub } from './services/chat';
 import { loadVapidKeys, PushService, webPushTransport, type PushTransport } from './services/push';
 import { SettingsStore } from './services/settings';
 import type { Viewer } from './types';
@@ -73,12 +74,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
     log: app.log,
   });
   app.decorate('push', push);
+  const chat = new ChatHub();
+  app.decorate('chat', chat);
   app.decorateRequest('viewer', null as unknown as Viewer);
   app.decorateRequest('lang', DEFAULT_LANGUAGE);
   app.addHook('onRequest', async (request) => {
     request.lang = pickLanguage(request.headers['accept-language']) ?? DEFAULT_LANGUAGE;
   });
   app.addHook('onClose', async () => {
+    chat.shutdown();
     await push.flush();
     await database.close();
   });

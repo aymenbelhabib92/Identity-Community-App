@@ -224,6 +224,38 @@ export const FR: Record<string, string> = {
   'Turn off on this device': 'Désactiver sur cet appareil',
   'Notifications are off on this device': 'Notifications désactivées sur cet appareil',
 
+  // ─── Club chat ─────────────────────────────────────────────────────────────
+  Chat: 'Chat',
+  '{count} unread': '{count} non lus',
+  'Active members talk here: meetups, help with a car, photos and club news.':
+    "Les membres actifs discutent ici : rencontres, coups de main mécanique, photos et nouvelles du club.",
+  Today: "Aujourd'hui",
+  'No messages yet': 'Aucun message pour le moment',
+  'Say hello to the club! Every active member can read and write here.':
+    'Dites bonjour au club ! Tous les membres actifs peuvent lire et écrire ici.',
+  'Load earlier messages': 'Afficher les messages précédents',
+  'This message was deleted': 'Ce message a été supprimé',
+  'Deleted message': 'Message supprimé',
+  'Message deleted': 'Message supprimé',
+  'Mention a member': 'Mentionner un membre',
+  'Replying to {name}': 'Réponse à {name}',
+  'Cancel the reply': 'Annuler la réponse',
+  Reply: 'Répondre',
+  Delete: 'Supprimer',
+  Send: 'Envoyer',
+  'Could not copy the message.': "Impossible de copier le message.",
+  'Connecting…': 'Connexion…',
+  'Chat notifications': 'Notifications du chat',
+  'All messages': 'Tous les messages',
+  'Mentions and replies': 'Mentions et réponses',
+  Mentions: 'Mentions',
+  'Grouped: one notification at most every {minutes} minutes': 'Regroupés : une notification au plus toutes les {minutes} minutes',
+  'When someone writes @your name or replies to you': 'Quand quelqu’un écrit @votre nom ou vous répond',
+  'Never for the chat': 'Jamais pour le chat',
+  'Nothing is sent while you are reading the chat.': "Rien n'est envoyé pendant que vous lisez le chat.",
+  'Turn on notifications for this device too (Notifications, just above).':
+    'Activez aussi les notifications sur cet appareil (Notifications, juste au-dessus).',
+
   // ─── Pass, membership, payments ────────────────────────────────────────────
   Membership: 'Adhésion',
   'Member pass': 'Pass membre',

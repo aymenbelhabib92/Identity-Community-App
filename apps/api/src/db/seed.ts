@@ -17,12 +17,13 @@ import {
   type MeetupVisibility,
   type Role,
 } from '@identity/shared';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { loadConfig, loadEnvFile } from '../config';
 import { hashPassword } from '../lib/password';
 import { openDatabase } from './client';
 import {
   announcements,
+  chatMessages,
   meetupRsvps,
   meetups,
   memberLocations,
@@ -53,9 +54,10 @@ if (Number(count) > 0 && !reset) {
 
 if (reset) {
   await db.execute(
-    sql`truncate table notifications, meetup_rsvps, meetups, announcements, payments, member_locations, settings, users cascade`,
+    sql`truncate table chat_messages, push_subscriptions, member_photos, notifications, meetup_rsvps, meetups, announcements, payments, member_locations, settings, users cascade`,
   );
   await rm(path.join(config.uploadDir, 'proofs'), { recursive: true, force: true });
+  await rm(path.join(config.uploadDir, 'photos'), { recursive: true, force: true });
 }
 
 // ─── Time helpers (Tunis, UTC+1 all year) ────────────────────────────────────
@@ -297,6 +299,51 @@ await db.insert(notifications).values([
   { userId: id.leila!, kind: 'membership', title: 'New membership request', body: 'Walid Zouari · +216 20 000 099', link: `/admin/members/${id.walid}`, createdAt: hoursAgo(30) },
   { userId: id.mehdi!, kind: 'membership', title: 'New membership request', body: 'Walid Zouari · +216 20 000 099', link: `/admin/members/${id.walid}`, createdAt: hoursAgo(30) },
 ]);
+
+// ─── Club chat ───────────────────────────────────────────────────────────────
+
+interface DemoChatMessage {
+  key?: string;
+  from: string;
+  hours: number;
+  body: string;
+  replyTo?: string;
+  mentions?: string[];
+  deleted?: boolean;
+}
+
+const chat: DemoChatMessage[] = [
+  { from: 'sami', hours: 50, body: "Morning all! Who's up for a sunrise run to Sidi Bou Said on Sunday?" },
+  { from: 'yasmine', hours: 49.8, body: 'Count me in. Coffee is on me this time.' },
+  { key: 'rattle', from: 'nour', hours: 49.5, body: 'Same. Can someone listen to my exhaust after? New rattle since last week.' },
+  { from: 'ahmed', hours: 49.2, replyTo: 'rattle', body: "Probably a loose heat shield. Bring it Sunday, I'll have a look." },
+  { key: 'obd', from: 'omar', hours: 26, body: 'Does anyone have a spare OBD2 cable? Mine just died.' },
+  { from: 'fares', hours: 25.6, body: 'Wrong group, sorry', deleted: true },
+  { from: 'hedi', hours: 25.4, replyTo: 'obd', body: "I have one, I'll bring it Saturday." },
+  { from: 'rania', hours: 5, body: 'The Summer Night Cruise photos turned out great. Thanks again to everyone who came!' },
+  { from: 'sami', hours: 2.5, mentions: ['karim'], body: '@Karim Ben Salah are you bringing the Cupra on Saturday? We need one more car for the lake photos.' },
+  { from: 'yasmine', hours: 2, body: 'Reminder: low revs when you arrive, there are houses right next to the parking.' },
+  { from: 'ines', hours: 0.5, body: 'Washing the car right now. See you all Saturday!' },
+];
+
+const chatIds: Record<string, string> = {};
+for (const m of chat) {
+  const [row] = await db
+    .insert(chatMessages)
+    .values({
+      authorId: id[m.from]!,
+      body: m.body,
+      replyToId: m.replyTo ? chatIds[m.replyTo]! : null,
+      mentions: (m.mentions ?? []).map((key) => id[key]!),
+      deletedAt: m.deleted ? hoursAgo(m.hours - 0.05) : null,
+      createdAt: hoursAgo(m.hours),
+    })
+    .returning({ id: chatMessages.id });
+  if (m.key) chatIds[m.key] = row!.id;
+}
+// Everyone is up to date, except Karim: three unread messages (Chat tab badge).
+await db.update(users).set({ chatReadAt: now });
+await db.update(users).set({ chatReadAt: hoursAgo(3) }).where(eq(users.id, id.karim!));
 
 await database.close();
 

@@ -1,7 +1,7 @@
 {
   "name": "identity-community-app",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Identity Car Community — membership, map, meetups. Web app / PWA + API (native app later).",
   "workspaces": [
     "packages/*",
@@ -16,7 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:generate": "npm run db:generate -w @identity/api",
-    "db:seed": "npm run db:seed -w @identity/api",
+    "db:seed": "npm run db:seed -w @identity/api --",
     "brand": "node scripts/brand/generate.mjs"
   },
   "devDependencies": {

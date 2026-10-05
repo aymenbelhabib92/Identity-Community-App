@@ -13,7 +13,7 @@ type Router = ReturnType<typeof createBrowserRouter>;
  */
 export type ScreenTransition = 'push' | 'pop' | 'tab' | 'fade' | 'none';
 
-const TAB_ROOTS = ['/home', '/map', '/meetups'];
+const TAB_ROOTS = ['/home', '/map', '/meetups', '/chat'];
 /** Screens reached from the Home tab (they keep it highlighted in the tab bar). */
 const HOME_SECTIONS = ['/notifications', '/profile', '/pass', '/rules', '/admin', '/verify'];
 const AUTH_FLOW = ['/welcome', '/signin', '/join'];
