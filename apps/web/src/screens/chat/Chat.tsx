@@ -56,7 +56,8 @@ export default function Chat() {
 
 function LockedChat() {
   return (
-    <Screen>
+    <Screen className={s.screen}>
+      <div className={s.wallpaper} aria-hidden />
       <LargeTitle>{t('Chat')}</LargeTitle>
       <Card padded>
         <div className={s.lockedHead}>
@@ -253,6 +254,7 @@ function ChatRoom({ user }: { user: User }) {
 
   return (
     <Screen className={s.screen}>
+      <div className={s.wallpaper} aria-hidden />
       <LargeTitle accessory={offline ? <span className={s.offline}>{t('Connecting…')}</span> : undefined}>{t('Chat')}</LargeTitle>
 
       {room.isPending ? (

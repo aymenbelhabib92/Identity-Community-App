@@ -1,6 +1,59 @@
 /* The composer is fixed above the tab bar; a spacer of its height ends the list (Chat.tsx). */
 .screen {
+  /* Own layer: the wallpaper (z-index -1) stays above the page background, below the messages. */
+  position: relative;
+  z-index: 0;
   padding-bottom: calc(var(--tabbar-height) + 8px);
+}
+
+/*
+ * Club wallpaper, fixed while the messages scroll. The whole picture is fitted
+ * to the screen (logo and tagline visible); the rest of the screen shows the
+ * same picture blurred (a tiny copy, stretched). A veil in the colours of the
+ * theme keeps the messages, names and dates readable over the light trails.
+ */
+.wallpaper {
+  --veil-top: rgba(0, 0, 0, 0.5);
+  --veil-middle: rgba(0, 0, 0, 0.42);
+  --veil-bottom: rgba(0, 0, 0, 0.72);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  /* "top": on wide screens, the sides show the blurred sky rather than the blurred logo. */
+  background: url('/brand/chat-background-blur.webp') center top / cover no-repeat, var(--bg);
+  pointer-events: none;
+}
+
+/* The picture (1066 × 1600), as large as the screen allows, its edges fading into the blur. */
+.wallpaper::before {
+  --fade: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100vw, 66.625vh);
+  aspect-ratio: 1066 / 1600;
+  transform: translate(-50%, -50%);
+  background: url('/brand/chat-background.webp') center / 100% 100% no-repeat;
+  -webkit-mask-image: var(--fade);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fade);
+  mask-composite: intersect;
+}
+
+.wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--veil-top), var(--veil-middle) 45%, var(--veil-bottom));
+}
+
+:global(:root[data-theme='light']) .wallpaper {
+  --veil-top: rgba(242, 242, 247, 0.78);
+  --veil-middle: rgba(242, 242, 247, 0.66);
+  --veil-bottom: rgba(242, 242, 247, 0.86);
 }
 
 .offline {
@@ -115,6 +168,8 @@
   font-weight: 600;
   color: var(--text-2);
   text-align: left;
+  /* Readable over the logo of the wallpaper. */
+  text-shadow: 0 1px 3px var(--bg);
 }
 
 .author:active {

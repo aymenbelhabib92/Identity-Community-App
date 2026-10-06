@@ -183,6 +183,10 @@ Nominatim. Moving to **Google Maps** later only touches `apps/web/src/components
 file (single colour, `fill="currentColor"`) and run `npm run brand` to regenerate the in-app logo,
 PWA icons, favicon and card texture.
 
+The chat wallpaper is `apps/web/public/brand/chat-background.webp` (1066 × 1600), with a tiny
+blurred copy (`chat-background-blur.webp`, 40 × 60) filling the screen around it. To change it,
+replace both files (same proportions, or update `aspect-ratio` in `screens/chat/chat.module.css`).
+
 ## Native app (next)
 
 The plan is an **Expo (React Native)** app in `apps/mobile`, reusing `packages/shared` (types,

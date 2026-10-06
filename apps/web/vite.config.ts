@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => {
         'icons/apple-touch-icon.png',
         'icons/badge-96.png',
         'brand/shards.webp',
+        'brand/chat-background.webp',
+        'brand/chat-background-blur.webp',
       ],
       manifest: {
         id: '/',
