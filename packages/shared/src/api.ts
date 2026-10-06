@@ -450,6 +450,14 @@ export type ChatUnread = z.infer<typeof chatUnreadSchema>;
 /** Members who can be mentioned. */
 export const chatMemberListSchema = items(memberRefSchema);
 
+/**
+ * How far a member has read the chat: the last time they had it open. They have
+ * seen every message sent before `readAt` ("Seen by" under the messages).
+ */
+export const chatReaderSchema = z.object({ member: memberRefSchema, readAt: timestampSchema });
+export type ChatReader = z.infer<typeof chatReaderSchema>;
+export const chatReaderListSchema = items(chatReaderSchema);
+
 // ─── Push notifications ──────────────────────────────────────────────────────
 
 /** VAPID public key, for `pushManager.subscribe({ applicationServerKey })`. */

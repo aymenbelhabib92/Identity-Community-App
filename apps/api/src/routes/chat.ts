@@ -5,10 +5,11 @@ import {
   chatMessageListSchema,
   chatMessageSchema,
   chatPostBodySchema,
+  chatReaderListSchema,
   chatUnreadSchema,
   idParamsSchema,
 } from '@identity/shared';
-import { asc, eq, gt, inArray, lt, ne } from 'drizzle-orm';
+import { asc, eq, gt, inArray, isNotNull, lt, ne } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { chatMessages, users } from '../db/schema';
 import { fieldError, forbidden, notFound } from '../errors';
@@ -142,7 +143,35 @@ export const chatRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { viewer } = request;
       await app.db.update(users).set({ chatReadAt: viewer.now, updatedAt: viewer.user.updatedAt }).where(eq(users.id, viewer.id));
+      // "Seen by" updates live for the members reading the chat.
+      app.chat.send('read', { member: toMemberRef(viewer.user, viewer.now)!, readAt: viewer.now.toISOString() });
       return { unread: 0 };
+    },
+  );
+
+  app.get(
+    '/chat/readers',
+    {
+      schema: {
+        tags: ['chat'],
+        summary: 'How far each member has read the chat ("Seen by")',
+        description:
+          'Members with access who have opened the chat, with the last time they had it open: a member has seen ' +
+          'the messages sent before `readAt`. Kept up to date by the `read` events of GET /chat/stream.',
+        response: { 200: chatReaderListSchema },
+      },
+    },
+    async (request) => {
+      const { viewer } = request;
+      const rows = await app.db
+        .select({ ref: memberRefColumns(users), status: users.status, paidUntil: users.paidUntil, readAt: users.chatReadAt })
+        .from(users)
+        .where(isNotNull(users.chatReadAt));
+      return {
+        items: rows
+          .filter((row) => stateOf({ ...row, role: row.ref.role }, viewer.settings, viewer.today).hasAccess)
+          .map((row) => ({ member: toMemberRef(row.ref, viewer.now)!, readAt: row.readAt!.toISOString() })),
+      };
     },
   );
 
@@ -177,7 +206,8 @@ export const chatRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: ['chat'],
         summary: 'Live messages (Server-Sent Events)',
         description:
-          'text/event-stream with `message` events (a new message, as in GET /chat/messages) and `deleted` events ({ id }). ' +
+          'text/event-stream with `message` events (a new message, as in GET /chat/messages), `deleted` events ({ id }) ' +
+          'and `read` events (a member opened the chat, as in GET /chat/readers). ' +
           'While a member keeps it open, they get no push notification for the chat.',
       },
     },

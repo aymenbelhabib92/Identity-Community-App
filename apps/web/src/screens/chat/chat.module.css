@@ -272,6 +272,53 @@
   opacity: 0.55;
 }
 
+/* "Seen by": small photos under the latest message, on its side. */
+.seen {
+  display: flex;
+  margin: 4px 0 2px 38px;
+}
+
+.seenMine {
+  justify-content: flex-end;
+  margin-left: 0;
+}
+
+.seenButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-shadow: 0 1px 3px var(--bg);
+}
+
+.seenButton:active {
+  opacity: 0.6;
+}
+
+.seenAvatars {
+  display: inline-flex;
+}
+
+.seenAvatar {
+  display: block;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--bg);
+}
+
+.seenAvatar + .seenAvatar {
+  margin-left: -5px;
+}
+
+.seenEmpty {
+  margin: 4px 4px 12px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
 /* The message a quote points to, briefly highlighted. */
 .flash {
   animation: flash 1.4s ease;

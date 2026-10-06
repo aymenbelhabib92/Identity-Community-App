@@ -99,7 +99,7 @@ export class ChatHub {
     return false;
   }
 
-  send(event: 'message' | 'deleted', data: unknown): void {
+  send(event: 'message' | 'deleted' | 'read', data: unknown): void {
     this.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   }
 

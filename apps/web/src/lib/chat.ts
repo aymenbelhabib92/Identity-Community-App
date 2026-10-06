@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatMessageList, ChatUnread } from '@identity/shared';
+import type { ChatMessage, ChatMessageList, ChatReader, ChatUnread, MemberRef } from '@identity/shared';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
@@ -80,6 +80,32 @@ export async function loadOlderMessages(queryClient: QueryClient): Promise<void>
     keys.chatMessages,
     (current) => current && { items: mergeMessages(current.items, page.items), hasMore: page.hasMore },
   );
+}
+
+// ─── Seen by ─────────────────────────────────────────────────────────────────
+
+type ReaderList = { items: ChatReader[] };
+
+/** How far each member has read the chat; kept up to date by the live stream. */
+export const useChatReaders = (enabled: boolean) =>
+  useQuery({ queryKey: keys.chatReaders, queryFn: api.chat.readers, enabled, staleTime: Infinity, gcTime: 30 * 60_000 });
+
+/** A member read the chat up to `reader.readAt` (never moves back). */
+export function updateReader(queryClient: QueryClient, reader: ChatReader): void {
+  queryClient.setQueryData<ReaderList>(keys.chatReaders, (list) => {
+    if (!list) return list;
+    const current = list.items.find((item) => item.member.id === reader.member.id);
+    if (current && current.readAt >= reader.readAt) return list;
+    return { items: [...list.items.filter((item) => item.member.id !== reader.member.id), reader] };
+  });
+}
+
+/** Members who have seen `message` (not its author, not me), the most recent readers first. */
+export function seenBy(message: ChatMessage, readers: ChatReader[], meId: string): MemberRef[] {
+  return readers
+    .filter((reader) => reader.member.id !== message.author.id && reader.member.id !== meId && reader.readAt >= message.createdAt)
+    .sort((a, b) => b.readAt.localeCompare(a.readAt))
+    .map((reader) => reader.member);
 }
 
 /** Number of unread messages, for the Chat tab badge. */
@@ -165,17 +191,22 @@ export function useLiveChat(enabled: boolean, onMessage?: (message: ChatMessage)
         setConnected(true);
         delay = 2_000;
         alive();
-        // Messages sent while the stream was closed.
+        // Messages sent, and read, while the stream was closed.
         void queryClient.refetchQueries({ queryKey: keys.chatMessages });
+        void queryClient.refetchQueries({ queryKey: keys.chatReaders });
         await readEvents(
           response,
           (event, data) => {
             if (event === 'message') {
               const message = JSON.parse(data) as ChatMessage;
               addMessage(queryClient, message);
+              // Writing in the chat means having read it.
+              updateReader(queryClient, { member: message.author, readAt: message.createdAt });
               onMessageRef.current?.(message);
             } else if (event === 'deleted') {
               removeMessage(queryClient, (JSON.parse(data) as { id: string }).id);
+            } else if (event === 'read') {
+              updateReader(queryClient, JSON.parse(data) as ChatReader);
             }
           },
           alive,

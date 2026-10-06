@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import type { ChatMessage, ChatMessageList, ChatUnread } from '@identity/shared';
+import type { ChatMessage, ChatMessageList, ChatReader, ChatUnread } from '@identity/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PushMessage, PushTransport } from '../src/services/push';
 import { activeMember, adminToken, bearer, createTestApp, register, type TestContext } from './helpers';
@@ -139,6 +139,33 @@ describe('club chat', () => {
       replyToId: '00000000-0000-4000-8000-000000000000',
     });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('seen by', () => {
+  it('tells how far each member has read the chat, live', async () => {
+    const written: string[] = [];
+    const stream = { write: (chunk: string) => written.push(chunk), end: () => {} } as unknown as ServerResponse;
+    t.app.chat.open(karim.id, stream);
+
+    const message = await say(karim.token, 'did everyone see this?');
+    minutes(1);
+    await call(yasmine.token, 'POST', '/chat/read');
+
+    const readers = (await call(karim.token, 'GET', '/chat/readers')).json<{ items: ChatReader[] }>().items;
+    const yasmineRead = readers.find((reader) => reader.member.id === yasmine.id);
+    expect(yasmineRead?.member).toMatchObject({ fullName: 'Yasmine Mansour' });
+    expect(yasmineRead!.readAt > message.createdAt).toBe(true);
+    // Karim read it by writing it; the event reached those reading the chat.
+    expect(readers.find((reader) => reader.member.id === karim.id)!.readAt >= message.createdAt).toBe(true);
+    expect(written.at(-1)).toMatch(/^event: read\ndata: .*"readAt":"[^"]+"/);
+    expect(written.at(-1)).toContain(yasmine.id);
+    t.app.chat.close(stream);
+  });
+
+  it('is for members with access', async () => {
+    const { token } = await register(t.app, 'Pending Reader');
+    expect((await call(token, 'GET', '/chat/readers')).statusCode).toBe(403);
   });
 });
 

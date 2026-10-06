@@ -15,7 +15,7 @@ same routes.
 | **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
 | **Club** | Announcements, club rules, notifications in the app and as **push notifications** on the phone | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
-| **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge, a member's profile (car, car photos) from their photo; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
+| **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge, "seen by" (photos under the latest message, list per message), a member's profile (car, car photos) from their photo; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
 | **Preferences** | English or French (the phone's language by default, remembered on the account), dark / light / automatic theme | — |
 
 Roles: **member**, **organizer** (meetups, announcements, pass checks), **treasurer** (payments),
@@ -66,6 +66,9 @@ docker/       Caddyfile (web server + HTTPS + /api proxy)
   reading the chat gets no push for it; otherwise mentions and replies are pushed one by one, and
   members who chose "all messages" get one grouped notification at most every 3 minutes
   (`CHAT_PUSH_INTERVAL_MINUTES`). Chat messages never go to the bell.
+  "Seen by" needs no extra storage: `users.chat_read_at` (the last time each member had the chat
+  open, also used for the unread badge) tells who has seen a message, i.e. opened the chat after it
+  was sent (`GET /api/v1/chat/readers`, live `read` events on the stream).
 - **Push priority:** every push is sent with `Urgency: high` (they are all shown to the member).
   With the default "normal", Android and iOS keep messages while the phone sleeps and deliver
   them only when the browser wakes up, in practice when the app is opened.

@@ -341,9 +341,14 @@ for (const m of chat) {
     .returning({ id: chatMessages.id });
   if (m.key) chatIds[m.key] = row!.id;
 }
-// Everyone is up to date, except Karim: three unread messages (Chat tab badge).
-await db.update(users).set({ chatReadAt: now });
-await db.update(users).set({ chatReadAt: hoursAgo(3) }).where(eq(users.id, id.karim!));
+// Last time each member had the chat open ("Seen by"). Karim has three unread messages (Chat tab badge).
+const lastRead: Record<string, number> = {
+  mehdi: 0.1, leila: 0.2, sami: 0.1, yasmine: 0.3, nour: 0.4, ahmed: 0.2, rania: 0.1,
+  karim: 3, youssef: 1, hedi: 4, fares: 20, omar: 26, ines: 0.5,
+};
+for (const [key, hours] of Object.entries(lastRead)) {
+  await db.update(users).set({ chatReadAt: hoursAgo(hours) }).where(eq(users.id, id[key]!));
+}
 
 await database.close();
 

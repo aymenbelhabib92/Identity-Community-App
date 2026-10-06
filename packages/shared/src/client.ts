@@ -18,6 +18,7 @@ import type {
   ChatMessage,
   ChatMessageList,
   ChatPostBody,
+  ChatReader,
   ChatUnread,
   ErrorResponse,
   LocationUpdateBody,
@@ -241,8 +242,10 @@ export function createApiClient(options: ApiClientOptions) {
       unread: () => get<ChatUnread>('/chat/unread'),
       /** Members who can be mentioned with @Name. */
       members: () => get<Items<MemberRef>>('/chat/members'),
+      /** How far each member has read the chat ("Seen by"). */
+      readers: () => get<Items<ChatReader>>('/chat/readers'),
       /**
-       * Live messages as Server-Sent Events (`message`, `deleted`) for as long as
+       * Live messages as Server-Sent Events (`message`, `deleted`, `read`) for as long as
        * the response body is read. Abort `signal` to close it.
        */
       stream: (signal: AbortSignal) => send('GET', '/chat/stream', { signal }),

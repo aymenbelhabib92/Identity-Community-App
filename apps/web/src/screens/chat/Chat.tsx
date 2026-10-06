@@ -4,15 +4,17 @@ import {
   formatDayDate,
   formatTime,
   t,
+  tn,
   toIsoDate,
   zonedParts,
   type ChatMessage,
   type ChatMessageList,
+  type ChatReader,
   type MemberRef,
   type User,
 } from '@identity/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowUp, Ban, Copy, Lock, MessagesSquare, Reply, Trash2, X } from 'lucide-react';
+import { ArrowUp, Ban, CheckCheck, Copy, Lock, MessagesSquare, Reply, Trash2, X } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MemberProfileSheet } from '../../components/members/MemberProfileSheet';
 import {
@@ -27,6 +29,7 @@ import {
   ListRow,
   Loading,
   Screen,
+  SectionFooter,
   Sheet,
   Spinner,
   useToast,
@@ -40,8 +43,10 @@ import {
   matchMembers,
   mentionQuery,
   removeMessage,
+  seenBy,
   useChatMembers,
   useChatMessages,
+  useChatReaders,
   useLiveChat,
 } from '../../lib/chat';
 import { cx } from '../../lib/cx';
@@ -106,10 +111,13 @@ function ChatRoom({ user }: { user: User }) {
   const canModerate = useCan('chat:moderate');
   const room = useChatMessages(true);
   const members = useChatMembers(true);
+  const readerList = useChatReaders(true);
+  const readers = useMemo(() => readerList.data?.items ?? [], [readerList.data]);
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [selected, setSelected] = useState<ChatMessage | null>(null);
+  const [seenOf, setSeenOf] = useState<ChatMessage | null>(null);
   const [profile, setProfile] = useState<MemberRef | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [composerHeight, setComposerHeight] = useState(64);
@@ -150,13 +158,19 @@ function ChatRoom({ user }: { user: User }) {
   // ── Scrolling: start at the latest message, follow new ones while at the bottom.
   const atBottom = useRef(true);
   const startedAtBottom = useRef(false);
+  /** Settled at the latest message: from now on, scrolling up to the top loads older messages. */
+  const positioned = useRef(false);
+  const positionFrame = useRef(0);
   const olderAnchor = useRef<number | null>(null);
   useEffect(() => {
     const onScroll = () => {
       atBottom.current = isNearBottom();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(positionFrame.current);
+    };
   }, []);
 
   const items = room.data?.items;
@@ -174,11 +188,24 @@ function ChatRoom({ user }: { user: User }) {
       startedAtBottom.current = true;
       scrollToBottom();
       atBottom.current = true;
+      if (!positioned.current) {
+        // React Router's <ScrollRestoration> puts the page back at the top on every navigation,
+        // in a layout effect that runs after this one when the messages are already cached (coming
+        // back to the chat). Go down again on the next frame, before it is painted.
+        cancelAnimationFrame(positionFrame.current);
+        positionFrame.current = requestAnimationFrame(() => {
+          scrollToBottom();
+          atBottom.current = true;
+          positioned.current = true;
+        });
+      }
     }
-  }, [items, firstId, lastId, pending.length, composerHeight, keyboard]);
+    // readers: the "Seen by" photos may appear under the latest message.
+  }, [items, firstId, lastId, pending.length, composerHeight, keyboard, readers]);
 
   const loadOlder = useCallback(async () => {
-    if (loadingOlder || !startedAtBottom.current) return;
+    // Not during the jump to the latest message: the top of the list may be on screen for an instant.
+    if (loadingOlder || !positioned.current) return;
     setLoadingOlder(true);
     olderAnchor.current = scroller().scrollHeight;
     try {
@@ -267,11 +294,13 @@ function ChatRoom({ user }: { user: User }) {
           pending={pending}
           me={user}
           names={names}
+          readers={readers}
           loadingOlder={loadingOlder}
           onLoadOlder={() => void loadOlder()}
           onSelect={setSelected}
           onShowOriginal={showOriginal}
           onProfile={setProfile}
+          onSeen={setSeenOf}
         />
       )}
       <div style={{ height: composerHeight + Math.max(0, keyboard - 58) }} aria-hidden />
@@ -306,6 +335,16 @@ function ChatRoom({ user }: { user: User }) {
                 setSelected(null);
               }}
             />
+            <ListRow
+              icon={<CheckCheck />}
+              title={t('Seen by')}
+              value={seenBy(selected, readers, user.id).length}
+              onClick={() => {
+                setSeenOf(selected);
+                setSelected(null);
+              }}
+              chevron
+            />
             {canDelete(selected) && (
               <ListRow
                 icon={<Trash2 />}
@@ -320,8 +359,75 @@ function ChatRoom({ user }: { user: User }) {
           </List>
         )}
       </Sheet>
+      <SeenSheet
+        members={seenOf ? seenBy(seenOf, readers, user.id) : null}
+        onClose={() => setSeenOf(null)}
+        onProfile={(member) => {
+          setSeenOf(null);
+          setProfile(member);
+        }}
+      />
       <MemberProfileSheet member={profile} onClose={() => setProfile(null)} />
     </Screen>
+  );
+}
+
+/** The members who have seen a message; tapping one opens their profile. */
+function SeenSheet({
+  members,
+  onClose,
+  onProfile,
+}: {
+  members: MemberRef[] | null;
+  onClose: () => void;
+  onProfile: (member: MemberRef) => void;
+}) {
+  return (
+    <Sheet open={members !== null} onClose={onClose} title={t('Seen by')}>
+      {members &&
+        (members.length === 0 ? (
+          <p className={s.seenEmpty}>{t('Nobody has seen this message yet.')}</p>
+        ) : (
+          <List>
+            {members.map((member) => (
+              <ListRow
+                key={member.id}
+                leading={<Avatar name={member.fullName} photo={member.avatar} size={36} online={member.online} />}
+                title={member.fullName}
+                onClick={() => onProfile(member)}
+                chevron
+              />
+            ))}
+          </List>
+        ))}
+      <SectionFooter>{t('Members who opened the chat after this message was sent.')}</SectionFooter>
+    </Sheet>
+  );
+}
+
+/** Under the latest message: the photos of the members who have seen it. */
+function SeenRow({ members, mine, onOpen }: { members: MemberRef[]; mine: boolean; onOpen: () => void }) {
+  if (members.length === 0) return null;
+  const shown = members.slice(0, 5);
+  const more = members.length - shown.length;
+  return (
+    <div className={cx(s.seen, mine && s.seenMine)}>
+      <button
+        type="button"
+        className={s.seenButton}
+        onClick={onOpen}
+        aria-label={tn(members.length, 'Seen by {count} member', 'Seen by {count} members')}
+      >
+        <span className={s.seenAvatars} aria-hidden>
+          {shown.map((member) => (
+            <span key={member.id} className={s.seenAvatar}>
+              <Avatar name={member.fullName} photo={member.avatar} size={18} />
+            </span>
+          ))}
+        </span>
+        {more > 0 && <span className={s.seenMore}>+{more}</span>}
+      </button>
+    </div>
   );
 }
 
@@ -354,21 +460,25 @@ function Messages({
   pending,
   me,
   names,
+  readers,
   loadingOlder,
   onLoadOlder,
   onSelect,
   onShowOriginal,
   onProfile,
+  onSeen,
 }: {
   room: ChatMessageList;
   pending: PendingMessage[];
   me: User;
   names: Map<string, string>;
+  readers: ChatReader[];
   loadingOlder: boolean;
   onLoadOlder: () => void;
   onSelect: (message: ChatMessage) => void;
   onShowOriginal: (id: string) => void;
   onProfile: (member: MemberRef) => void;
+  onSeen: (message: ChatMessage) => void;
 }) {
   // Scrolling up to the top loads older messages.
   const top = useRef<HTMLDivElement>(null);
@@ -434,6 +544,9 @@ function Messages({
               onShowOriginal={onShowOriginal}
               onProfile={onProfile}
             />
+            {next === undefined && (
+              <SeenRow members={seenBy(message, readers, me.id)} mine={message.author.id === me.id} onOpen={() => onSeen(message)} />
+            )}
           </Fragment>
         );
       })}
