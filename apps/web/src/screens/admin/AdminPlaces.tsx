@@ -16,7 +16,7 @@ import { ChevronLeft, MapPin, Search, ShieldAlert, Trash2, X } from 'lucide-reac
 import { useEffect, useRef, useState } from 'react';
 import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { Link, Navigate } from 'react-router';
-import { PlaceLayer, RedZoneLayer } from '../../components/map/ClubLayers';
+import { PlaceLayer, RED_ZONE_STYLE, RedZoneLayer } from '../../components/map/ClubLayers';
 import mapStyles from '../../components/map/map.module.css';
 import { pinIcon } from '../../components/map/markers';
 import { MAX_ZOOM, TILE_ATTRIBUTION, useTileUrl } from '../../components/map/tiles';
@@ -111,7 +111,7 @@ export default function AdminPlaces() {
             <Circle
               center={[preview.center.lat, preview.center.lng]}
               radius={preview.radius}
-              pathOptions={{ className: cx(mapStyles.redZone, mapStyles.redZoneSelected) }}
+              pathOptions={{ ...RED_ZONE_STYLE, className: cx(mapStyles.redZone, mapStyles.redZoneSelected) }}
               interactive={false}
             />
           )}

@@ -13,7 +13,13 @@ import { placeIcon } from './markers';
 import s from './map.module.css';
 import sheet from './layers.module.css';
 
-/** Red zones: dashed red circles, on every layer of the map. */
+/**
+ * Red circles (also set as Leaflet options, so they stay red even if the CSS of
+ * map.module.css does not apply, e.g. with a canvas renderer).
+ */
+export const RED_ZONE_STYLE = { color: '#ff3b30', weight: 2.5, opacity: 1, fillColor: '#ff3b30', fillOpacity: 0.4 };
+
+/** Red zones: red circles, on every layer of the map. */
 export function RedZoneLayer({
   zones,
   selectedId,
@@ -30,7 +36,7 @@ export function RedZoneLayer({
           key={zone.id}
           center={[zone.lat, zone.lng]}
           radius={zone.radius}
-          pathOptions={{ className: cx(s.redZone, zone.id === selectedId && s.redZoneSelected) }}
+          pathOptions={{ ...RED_ZONE_STYLE, className: cx(s.redZone, zone.id === selectedId && s.redZoneSelected) }}
           interactive={Boolean(onSelect)}
           bubblingMouseEvents={false}
           eventHandlers={onSelect ? { click: () => onSelect(zone) } : undefined}

@@ -46,7 +46,7 @@ import { usePhoto } from '../../lib/photos';
 import { useMapMeetups, useMapMembers, useMapPlaces, useMapZones } from '../../lib/queries';
 import s from './map-screen.module.css';
 
-type Layer = 'members' | 'meetups' | 'places';
+type Layer = 'members' | 'meetups';
 
 export default function MapScreen() {
   const user = useUser();
@@ -94,12 +94,13 @@ export default function MapScreen() {
           <AttributionControl position="bottomleft" />
           <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} maxZoom={MAX_ZOOM} />
           <InitialView position={location.sharing ? location.position : null} members={memberList} />
+          {/* Red zones and the club's places show on every layer. */}
           <RedZoneLayer zones={zones.data?.items ?? []} onSelect={setZone} />
+          <PlaceLayer places={places.data?.items ?? []} onSelect={setClubPlace} />
           {layer === 'members' && user.hasAccess && (
             <MemberLayer members={memberList} onSelect={setSelected} onGroup={setGroup} />
           )}
           {layer === 'meetups' && <MeetupLayer meetups={meetups.data?.items ?? []} />}
-          {layer === 'places' && <PlaceLayer places={places.data?.items ?? []} onSelect={setClubPlace} />}
           {location.sharing && location.position && (
             <Marker
               position={[location.position.lat, location.position.lng]}
@@ -133,7 +134,6 @@ export default function MapScreen() {
           options={[
             { value: 'members', label: t('Members') },
             { value: 'meetups', label: t('Meetups') },
-            { value: 'places', label: t('Places') },
           ]}
         />
       </div>
