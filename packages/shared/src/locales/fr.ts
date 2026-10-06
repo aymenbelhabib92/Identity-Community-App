@@ -37,6 +37,7 @@ Ne partagez rien sur le lieu en dehors du club.`,
   'Dues due': 'Cotisation due',
   Expired: 'Expiré',
   Suspended: 'Suspendu',
+  Banned: 'Banni',
   'Not approved': 'Non approuvé',
   Public: 'Public',
   Secret: 'Secret',
@@ -132,6 +133,7 @@ Ne partagez rien sur le lieu en dehors du club.`,
   'Dues expired.': 'Cotisation expirée.',
   'Membership suspended.': 'Adhésion suspendue.',
   'Not a member.': "N'est pas membre.",
+  'Member banned.': 'Membre banni.',
   'Not active.': 'Non actif.',
 
   // ─── Notifications ─────────────────────────────────────────────────────────
@@ -164,6 +166,33 @@ Ne partagez rien sur le lieu en dehors du club.`,
   'Announcement from the treasurer': 'Annonce du trésorier',
   'Announcement from the admin': "Annonce de l'admin",
   'Announcement from the club': 'Annonce du club',
+
+  // ─── Bans, devices ─────────────────────────────────────────────────────────
+  'This account is banned.': 'Ce compte est banni.',
+  'This device can no longer be used to sign in.': 'Cet appareil ne peut plus être utilisé pour se connecter.',
+  'New accounts cannot be created from this device.': 'Impossible de créer un compte depuis cet appareil.',
+  'You cannot ban yourself.': 'Vous ne pouvez pas vous bannir vous-même.',
+  'This member is already banned for life.': 'Ce membre est déjà banni à vie.',
+  'This member is already banned until {date}.': "Ce membre est déjà banni jusqu'au {date}.",
+  'This member is not banned.': "Ce membre n'est pas banni.",
+  'Banned for {days} days': 'Banni pour {days} jours',
+  'Chat, map and meetups are closed until {date}.': "Le chat, la carte et les rencontres vous sont fermés jusqu'au {date}.",
+  'Ban lifted': 'Ban levé',
+  'Chat, map and meetups are open again.': 'Le chat, la carte et les rencontres vous sont de nouveau ouverts.',
+
+  // ─── Club places, red zones ────────────────────────────────────────────────
+  'Meeting spot': 'Spot de rencontre',
+  Garage: 'Garage',
+  Partner: 'Partenaire',
+  'Car wash': 'Lavage',
+  Other: 'Autre',
+  'Place not found': 'Lieu introuvable',
+  'Red zone not found': 'Zone rouge introuvable',
+  'Enter a name': 'Saisissez un nom',
+
+  // ─── Profile ───────────────────────────────────────────────────────────────
+  'Keep it short (150 characters max)': 'Restez bref (150 caractères max.)',
+  'Enter an Instagram name or the link to the profile.': 'Saisissez un nom Instagram ou le lien du profil.',
 
   // ─── Club chat ─────────────────────────────────────────────────────────────
   'Write a message': 'Écrivez un message',

@@ -1,4 +1,5 @@
 import { createApiClient } from '@identity/shared';
+import { getDeviceId } from './device';
 import { currentLanguage } from './preferences';
 
 const TOKEN_KEY = 'identity.token';
@@ -34,6 +35,7 @@ export const api = createApiClient({
   baseUrl: import.meta.env.VITE_API_URL || '/api/v1',
   getToken: () => tokenStore.get(),
   getLanguage: currentLanguage,
+  getDeviceId,
   onUnauthorized: () => {
     tokenStore.set(null);
     window.dispatchEvent(new Event(SIGNED_OUT_EVENT));

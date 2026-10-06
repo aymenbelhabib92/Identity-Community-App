@@ -29,6 +29,24 @@ export function CarPhotoStrip({ photos, className }: { photos: string[]; classNa
   );
 }
 
+/** Square thumbnails in three columns, as on an Instagram profile; tapping one shows it in full. */
+export function PhotoGrid({ photos, className }: { photos: string[]; className?: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (photos.length === 0) return null;
+  return (
+    <>
+      <div className={cx(s.squares, className)}>
+        {photos.map((id) => (
+          <button key={id} type="button" className={s.square} onClick={() => setOpen(id)} aria-label={t('View the photo')}>
+            <Photo id={id} />
+          </button>
+        ))}
+      </div>
+      <PhotoViewer id={open} onClose={() => setOpen(null)} />
+    </>
+  );
+}
+
 export function PhotoViewer({ id, onClose }: { id: string | null; onClose: () => void }) {
   return (
     <Sheet open={id !== null} onClose={onClose} title={t('Photo')}>

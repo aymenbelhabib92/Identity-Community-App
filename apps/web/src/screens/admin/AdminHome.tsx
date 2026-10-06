@@ -1,5 +1,5 @@
 import { t } from '@identity/shared';
-import { BookOpen, CalendarPlus, CreditCard, ScanLine, Settings, UserPlus, Users } from 'lucide-react';
+import { BookOpen, CalendarPlus, CreditCard, MapPinned, ScanLine, Settings, UserPlus, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { BackLink, LargeTitle, List, ListRow, Screen, SectionHeader } from '../../components/ui';
@@ -14,6 +14,7 @@ export default function AdminHome() {
   const canVerify = useCan('pass:verify');
   const canCreateMeetup = useCan('meetups:create');
   const canManageSettings = useCan('settings:manage');
+  const canManagePlaces = useCan('places:manage');
   const { data } = useAdminOverview(canViewMembers);
 
   const count = (value: number | undefined) => (value === undefined ? '…' : value);
@@ -71,6 +72,14 @@ export default function AdminHome() {
           />
         )}
         {canCreateMeetup && <ListRow to="/meetups/new" tile={{ icon: <CalendarPlus />, color: 'red' }} title={t('New meetup')} />}
+        {canManagePlaces && (
+          <ListRow
+            to="/admin/places"
+            tile={{ icon: <MapPinned />, color: 'purple' }}
+            title={t('Places & red zones')}
+            subtitle={t('On the members’ map')}
+          />
+        )}
         {canManageSettings && (
           <ListRow
             to="/admin/settings"

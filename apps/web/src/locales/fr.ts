@@ -262,6 +262,73 @@ export const FR: Record<string, string> = {
   'Turn on notifications for this device too (Notifications, just above).':
     'Activez aussi les notifications sur cet appareil (Notifications, juste au-dessus).',
 
+  // ─── Profile: cover, bio, Instagram ────────────────────────────────────────
+  Photos: 'Photos',
+  Instagram: 'Instagram',
+  Bio: 'Bio',
+  'Change my cover photo': 'Changer ma photo de couverture',
+  'Cover photo': 'Photo de couverture',
+  'Cover photo updated': 'Photo de couverture mise à jour',
+  'Cover photo removed': 'Photo de couverture supprimée',
+  'A wide photo — your car, a meetup. It appears at the top of your profile and of your Home screen.':
+    "Une photo en largeur — votre voiture, une rencontre. Elle s'affiche en haut de votre profil et de votre écran d'accueil.",
+  '@name or link': '@nom ou lien',
+  'A few words about you and your car': 'Quelques mots sur vous et votre voiture',
+
+  // ─── Bans ──────────────────────────────────────────────────────────────────
+  'Banned until {date}': "Banni jusqu'au {date}",
+  'Banned for life': 'Banni à vie',
+  'The chat, the map and meetups are closed meanwhile. Your pass and payments stay available.':
+    'Le chat, la carte et les rencontres vous sont fermés en attendant. Votre pass et vos paiements restent accessibles.',
+  'Bans so far': 'Bans reçus',
+  'Devices used': 'Appareils utilisés',
+  Bans: 'Bans',
+  'Lift the ban': 'Lever le ban',
+  'Lift the ban?': 'Lever le ban ?',
+  'Ban for {days} days': 'Bannir {days} jours',
+  'Ban for {days} days?': 'Bannir {days} jours ?',
+  'Ban no. {count} · 3, 7, then 15 days': 'Ban n° {count} · 3, 7, puis 15 jours',
+  'Ban for life': 'Bannir à vie',
+  'Ban for life?': 'Bannir à vie ?',
+  'Signed out, sign-in refused, their phones blocked': 'Déconnecté, connexion refusée, ses téléphones bloqués',
+  '{name} is signed out everywhere and can no longer sign in. No new account can be created from the phones they used.':
+    "{name} est déconnecté partout et ne peut plus se connecter. Aucun nouveau compte ne pourra être créé depuis les téléphones qu'il a utilisés.",
+  '{name} loses the chat, the map and meetups for {days} days, and keeps their pass and payments. The ban ends by itself.':
+    '{name} perd le chat, la carte et les rencontres pendant {days} jours, et garde son pass et ses paiements. Le ban se termine tout seul.',
+  Reason: 'Motif',
+  'Shown to the member': 'Affiché au membre',
+  '{name} gets the app back now. A ban lifted early does not count for the next one.':
+    "{name} retrouve l'app tout de suite. Un ban levé avant la fin ne compte pas pour le suivant.",
+
+  // ─── Places & red zones ────────────────────────────────────────────────────
+  'Red zone': 'Zone rouge',
+  'Members are never shown on the map within {meters} m of this place, so that nobody can be found there.':
+    "Aucun membre n'apparaît sur la carte à moins de {meters} m de ce lieu, pour que personne ne puisse y être localisé.",
+  'Red zone “{name}”: sharing is paused, the other members do not see you. It resumes when you leave.':
+    'Zone rouge « {name} » : partage en pause, les autres membres ne vous voient pas. Il reprend à la sortie de la zone.',
+  'Places & red zones': 'Lieux et zones rouges',
+  'On the members’ map': 'Sur la carte des membres',
+  '{places} places · {zones} red zones': '{places} lieux · {zones} zones rouges',
+  'Tap the map to add a place or a red zone. Tap one to change or remove it.':
+    'Touchez la carte pour ajouter un lieu ou une zone rouge. Touchez-en un pour le modifier ou le supprimer.',
+  'Place saved': 'Lieu enregistré',
+  'Red zone saved': 'Zone rouge enregistrée',
+  'Place removed': 'Lieu supprimé',
+  'Red zone removed': 'Zone rouge supprimée',
+  Place: 'Lieu',
+  'Add here': 'Ajouter ici',
+  'What to add': 'Que voulez-vous ajouter',
+  'e.g. Residential streets': 'ex. Quartier résidentiel',
+  Category: 'Catégorie',
+  'Description (optional): opening hours, discount for members…': 'Description (facultatif) : horaires, remise pour les membres…',
+  Radius: 'Rayon',
+  'Members inside are hidden from the map, and see a red alert while there. Every member sees the zone.':
+    "Les membres à l'intérieur sont masqués sur la carte et voient une alerte rouge tant qu'ils y sont. Tous les membres voient la zone.",
+  'Add the place': 'Ajouter le lieu',
+  'Add the red zone': 'Ajouter la zone rouge',
+  'Remove the place': 'Supprimer le lieu',
+  'Remove the red zone': 'Supprimer la zone rouge',
+
   // ─── Pass, membership, payments ────────────────────────────────────────────
   Membership: 'Adhésion',
   'Member pass': 'Pass membre',

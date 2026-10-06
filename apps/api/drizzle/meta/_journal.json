@@ -29,6 +29,20 @@
       "when": 1791225071806,
       "tag": "0003_club_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791301310836,
+      "tag": "0004_places_zones_bans",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791303549397,
+      "tag": "0005_profile_bio_cover",
+      "breakpoints": true
     }
   ]
 }

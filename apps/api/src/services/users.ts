@@ -20,12 +20,35 @@ import type { Viewer } from '../types';
 
 const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
 
+/** What the membership state is computed from (see `stateColumns` to select them). */
+export type StateFields = Pick<UserRow, 'status' | 'paidUntil' | 'role' | 'bannedUntil' | 'bannedForever'>;
+
+export const stateColumns = {
+  status: users.status,
+  paidUntil: users.paidUntil,
+  role: users.role,
+  bannedUntil: users.bannedUntil,
+  bannedForever: users.bannedForever,
+};
+
+/** A ban is running: for life, or until a time still to come (it ends by itself). */
+export function isBanned(user: Pick<UserRow, 'bannedUntil' | 'bannedForever'>, now: Date): boolean {
+  return user.bannedForever || (user.bannedUntil !== null && user.bannedUntil > now);
+}
+
 export function stateOf(
-  user: Pick<UserRow, 'status' | 'paidUntil' | 'role'>,
+  user: StateFields,
   settings: ClubSettings,
   today: IsoDate,
+  now: Date,
 ): { state: MembershipState; hasAccess: boolean } {
-  const state = membershipState({ status: user.status, paidUntil: user.paidUntil, today, graceDays: settings.graceDays });
+  const state = membershipState({
+    status: user.status,
+    paidUntil: user.paidUntil,
+    today,
+    graceDays: settings.graceDays,
+    banned: isBanned(user, now),
+  });
   return { state, hasAccess: hasMemberAccess(state, user.role) };
 }
 
@@ -35,17 +58,23 @@ export function isOnline(lastSeenAt: Date | null, now: Date): boolean {
 }
 
 export function toUserDto(user: UserRow, { settings, today, now }: Pick<Viewer, 'settings' | 'today' | 'now'>): User {
-  const { state, hasAccess } = stateOf(user, settings, today);
+  const { state, hasAccess } = stateOf(user, settings, today, now);
   return {
     id: user.id,
     fullName: user.fullName,
     phone: user.phone,
     car: user.car,
     avatar: user.avatarPhotoId,
+    cover: user.coverPhotoId,
     carPhotos: user.carPhotoIds,
+    bio: user.bio,
+    instagram: user.instagram,
     language: user.language,
     online: isOnline(user.lastSeenAt, now),
     chatNotifications: user.chatNotifications,
+    ban: isBanned(user, now)
+      ? { until: user.bannedForever ? null : user.bannedUntil!.toISOString(), reason: user.banReason }
+      : null,
     role: user.role,
     status: user.status,
     state,
@@ -97,18 +126,17 @@ export interface AudienceMember {
  */
 export async function audienceIds(
   db: DbOrTx,
-  settings: ClubSettings,
-  today: IsoDate,
+  { settings, today, now }: Pick<Viewer, 'settings' | 'today' | 'now'>,
   filter: (member: AudienceMember) => boolean,
   excludeId?: string | null,
 ): Promise<string[]> {
   const rows = await db
-    .select({ id: users.id, role: users.role, status: users.status, paidUntil: users.paidUntil })
+    .select({ id: users.id, ...stateColumns })
     .from(users)
     .where(sql`${users.status} <> 'rejected'`);
   return rows
     .filter((row) => row.id !== excludeId)
-    .map((row) => ({ id: row.id, role: row.role, ...stateOf(row, settings, today) }))
+    .map((row) => ({ id: row.id, role: row.role, ...stateOf(row, settings, today, now) }))
     .filter(filter)
     .map((member) => member.id);
 }

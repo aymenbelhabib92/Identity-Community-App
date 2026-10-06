@@ -34,8 +34,25 @@ export type ChatNotificationMode = (typeof CHAT_NOTIFICATION_MODES)[number];
 export const CHAT_PUSH_INTERVAL_MINUTES = 3;
 export const CHAT_MESSAGE_MAX_LENGTH = 1_000;
 
-export const MEMBER_FILTERS =['all', 'pending', 'active', 'due', 'expired', 'suspended', 'staff'] as const;
+export const MEMBER_FILTERS = ['all', 'pending', 'active', 'due', 'expired', 'suspended', 'banned', 'staff'] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
+
+/** Places the club shows on the map (added by admins). Labels are English source texts. */
+export const CLUB_PLACE_CATEGORIES = ['spot', 'garage', 'partner', 'wash', 'other'] as const;
+export type ClubPlaceCategory = (typeof CLUB_PLACE_CATEGORIES)[number];
+export const CLUB_PLACE_CATEGORY_LABELS: Record<ClubPlaceCategory, string> = {
+  spot: 'Meeting spot',
+  garage: 'Garage',
+  partner: 'Partner',
+  wash: 'Car wash',
+  other: 'Other',
+};
+
+/**
+ * Red zones: circles where members' positions are never shown (residential
+ * streets, sensitive places). Radius in metres.
+ */
+export const RED_ZONE_RADIUS = { min: 50, max: 5_000, default: 300 } as const;
 
 export const MEETUP_VISIBILITIES = ['public', 'secret', 'staff'] as const;
 export type MeetupVisibility = (typeof MEETUP_VISIBILITIES)[number];

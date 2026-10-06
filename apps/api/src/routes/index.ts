@@ -13,6 +13,7 @@ import { membershipRoutes } from './membership';
 import { notificationRoutes } from './notifications';
 import { passRoutes } from './pass';
 import { photoRoutes } from './photos';
+import { placeRoutes } from './places';
 import { pushRoutes } from './push';
 
 /** Version 1 of the API, mounted at /api/v1 and shared by the web app and the native app. */
@@ -33,6 +34,7 @@ export const apiRoutes: FastifyPluginAsyncZod = async (app) => {
     await secured.register(pushRoutes);
     await secured.register(chatRoutes);
     await secured.register(memberRoutes);
+    await secured.register(placeRoutes);
     await secured.register(adminRoutes, { prefix: '/admin' });
   });
 };

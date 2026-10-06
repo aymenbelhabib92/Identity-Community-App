@@ -19,6 +19,7 @@ import {
   type Payment,
   type PaymentStatus,
   type Role,
+  type User,
 } from '@identity/shared';
 import type { Tone } from '../components/ui';
 
@@ -28,6 +29,7 @@ export const STATE_TONE: Record<MembershipState, Tone> = {
   due: 'orange',
   expired: 'red',
   suspended: 'red',
+  banned: 'red',
   rejected: 'gray',
 };
 
@@ -95,6 +97,11 @@ export function timeAgo(date: string): string {
 export function dateOf(timestamp: string): string {
   const p = zonedParts(new Date(timestamp));
   return formatIsoDate(toIsoDate(p.y, p.m, p.d));
+}
+
+/** "Banned until Sat 10 Oct · 22:00", or "Banned for life". */
+export function banSummary(ban: NonNullable<User['ban']>): string {
+  return ban.until ? t('Banned until {date}', { date: formatDayDateTime(ban.until) }) : t('Banned for life');
 }
 
 export { formatDayDateTime, formatRelative };

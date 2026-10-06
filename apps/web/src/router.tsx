@@ -28,6 +28,7 @@ const AdminMembers = lazy(() => import('./screens/admin/AdminMembers'));
 const AdminMember = lazy(() => import('./screens/admin/AdminMember'));
 const AdminSettings = lazy(() => import('./screens/admin/AdminSettings'));
 const ScanPass = lazy(() => import('./screens/admin/ScanPass'));
+const AdminPlaces = lazy(() => import('./screens/admin/AdminPlaces'));
 
 const staff = (element: React.ReactNode) => <RequireStaff>{element}</RequireStaff>;
 
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
       { path: '/admin/members/:id', element: staff(<AdminMember />) },
       { path: '/admin/settings', element: staff(<AdminSettings />) },
       { path: '/admin/scan', element: staff(<ScanPass />) },
+      { path: '/admin/places', element: staff(<AdminPlaces />) },
     ],
   },
   { path: '*', element: <NotFound /> },

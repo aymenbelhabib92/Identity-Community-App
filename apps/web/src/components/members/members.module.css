@@ -1,23 +1,86 @@
-.head {
+.profile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 8px;
+  text-align: center;
+}
+
+/* Cover photo across the sheet, edge to edge. */
+.cover {
+  align-self: stretch;
+  margin: 0 calc(-1 * var(--page-x));
+  aspect-ratio: 3 / 1;
+  max-height: 200px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.coverImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The profile photo overlaps the bottom of the cover. */
+.avatar {
+  margin-top: -46px;
+  box-shadow: 0 0 0 4px var(--sheet-bg);
 }
 
 .name {
-  font-size: 20px;
+  margin-top: 2px;
+  font-size: 22px;
   font-weight: 700;
 }
 
-.role {
-  margin-top: 2px;
-  font-size: 15px;
-  color: var(--text-2);
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--green-text);
+}
+
+.online::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.bio {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.instagram:active {
+  opacity: 0.7;
 }
 
 .loading {
@@ -27,6 +90,20 @@
   color: var(--text-2);
 }
 
-.photos {
-  margin-top: 12px;
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: stretch;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.photosTitle {
+  margin: 6px 4px -4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--text-2);
 }

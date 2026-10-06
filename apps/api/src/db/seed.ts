@@ -6,6 +6,7 @@
  *   npm run db:seed            load the demo into an empty database
  *   npm run db:seed -- --reset wipe everything first (never in production)
  */
+import { existsSync } from 'node:fs';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -24,11 +25,15 @@ import { openDatabase } from './client';
 import {
   announcements,
   chatMessages,
+  clubPlaces,
   meetupRsvps,
+  memberBans,
   meetups,
   memberLocations,
+  memberPhotos,
   notifications,
   payments,
+  redZones,
   settings,
   users,
 } from './schema';
@@ -54,7 +59,7 @@ if (Number(count) > 0 && !reset) {
 
 if (reset) {
   await db.execute(
-    sql`truncate table chat_messages, push_subscriptions, member_photos, notifications, meetup_rsvps, meetups, announcements, payments, member_locations, settings, users cascade`,
+    sql`truncate table red_zones, club_places, member_devices, member_bans, chat_messages, push_subscriptions, member_photos, notifications, meetup_rsvps, meetups, announcements, payments, member_locations, settings, users cascade`,
   );
   await rm(path.join(config.uploadDir, 'proofs'), { recursive: true, force: true });
   await rm(path.join(config.uploadDir, 'photos'), { recursive: true, force: true });
@@ -154,6 +159,27 @@ await db.insert(memberLocations).values(
       updatedAt: hoursAgo(0.1 + index * 0.4),
     })),
 );
+
+// ─── Profiles: bios, Instagram, a cover photo ────────────────────────────────
+
+const profiles: Record<string, { bio: string; instagram: string | null }> = {
+  sami: { bio: 'Organizer. Golf 7 R, mostly on the Sidi Bou Said road at sunrise.', instagram: 'sami.golfr' },
+  yasmine: { bio: 'S3 owner and photographer of the night meets.', instagram: 'yasmine.s3' },
+  nour: { bio: 'GR86: light, loud, happy.', instagram: null },
+};
+for (const [key, profile] of Object.entries(profiles)) {
+  await db.update(users).set(profile).where(eq(users.id, id[key]!));
+}
+
+// The club's picture as Sami's cover (only where the web app's files are next to the API).
+const coverSource = path.resolve('../web/public/brand/chat-background.webp');
+if (existsSync(coverSource)) {
+  const key = `photos/${crypto.randomUUID()}`;
+  await mkdir(path.join(config.uploadDir, 'photos'), { recursive: true });
+  await copyFile(coverSource, path.join(config.uploadDir, key));
+  const [cover] = await db.insert(memberPhotos).values({ userId: id.sami!, kind: 'cover', file: key, mime: 'image/webp' }).returning();
+  await db.update(users).set({ coverPhotoId: cover!.id }).where(eq(users.id, id.sami!));
+}
 
 // ─── Payments ────────────────────────────────────────────────────────────────
 
@@ -350,6 +376,35 @@ for (const [key, hours] of Object.entries(lastRead)) {
   await db.update(users).set({ chatReadAt: hoursAgo(hours) }).where(eq(users.id, id[key]!));
 }
 
+// ─── Places, red zones, a ban ────────────────────────────────────────────────
+
+await db.insert(clubPlaces).values([
+  { name: 'Coffee & Cars — Sidi Bou Said', category: 'spot', description: 'Sunday mornings, upper parking.', lat: 36.8687, lng: 10.3417, createdById: id.mehdi! },
+  { name: 'Turbo Garage', category: 'garage', description: 'Diagnostics and tuning. 10 % off for members with their pass.', lat: 36.838, lng: 10.194, createdById: id.mehdi! },
+  { name: 'Café Le Paddock', category: 'partner', description: 'Partner café: a free espresso on meetup nights.', lat: 36.918, lng: 10.288, createdById: id.mehdi! },
+  { name: 'Shine Detailing', category: 'wash', description: null, lat: 36.86, lng: 10.195, createdById: id.mehdi! },
+]);
+
+// Leila shares her position from inside the first zone: she does not appear on the map.
+await db.insert(redZones).values([
+  { name: 'Carthage — residential streets', lat: 36.8528, lng: 10.3233, radius: 500, createdById: id.mehdi! },
+  { name: 'Charles Nicolle hospital', lat: 36.8027, lng: 10.1615, radius: 250, createdById: id.mehdi! },
+]);
+
+const banEnds = hoursAgo(-48);
+await db.insert(memberBans).values({
+  userId: id.bilel!,
+  byId: id.mehdi!,
+  level: 1,
+  reason: 'Burnout next to houses after the Summer Night Cruise',
+  startsAt: hoursAgo(24),
+  endsAt: banEnds,
+});
+await db
+  .update(users)
+  .set({ bannedUntil: banEnds, banReason: 'Burnout next to houses after the Summer Night Cruise' })
+  .where(eq(users.id, id.bilel!));
+
 await database.close();
 
 console.log(`
@@ -360,4 +415,5 @@ Demo data loaded (${database.kind}). Password for every account: demo1234
   Treasurer   Leila Tounsi      20 000 003
   Admin       Mehdi Trabelsi    20 000 001
   Pending     Walid Zouari      20 000 099
+  Banned      Bilel Sassi       20 000 028   (2 more days)
 `);

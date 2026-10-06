@@ -5,22 +5,26 @@ import {
   LOCATION_PRECISION_METERS,
   t,
   tn,
+  type ClubPlace,
   type LatLng,
   type MapMeetup,
   type MapMember,
   type Place,
+  type RedZone,
+  type User,
 } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import L, { type Map as LeafletMap } from 'leaflet';
-import { Car, Clock, LocateFixed, Lock, MapPin, Navigation, Search, X } from 'lucide-react';
+import { Car, Clock, LocateFixed, Lock, MapPin, Navigation, Search, ShieldAlert, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AttributionControl, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useNavigate } from 'react-router';
 import Supercluster, { type PointFeature } from 'supercluster';
+import { PlaceLayer, PlaceSheet, RedZoneLayer, RedZoneSheet } from '../../components/map/ClubLayers';
 import { clusterIcon, meetupIcon, memberIcon, meIcon, pinIcon } from '../../components/map/markers';
 import mapStyles from '../../components/map/map.module.css';
 import { MAX_ZOOM, TILE_ATTRIBUTION, useTileUrl } from '../../components/map/tiles';
-import { CarPhotoStrip } from '../../components/photos/Photos';
+import { MemberProfileSheet } from '../../components/members/MemberProfileSheet';
 import {
   Avatar,
   ButtonLink,
@@ -35,14 +39,14 @@ import {
 import { api } from '../../lib/api';
 import { useUser } from '../../lib/auth';
 import { errorMessage } from '../../lib/errors';
-import { roleLabel, timeAgo } from '../../lib/format';
+import { banSummary, roleLabel, timeAgo } from '../../lib/format';
 import { useDebounced } from '../../lib/hooks';
 import { useLocationSharing } from '../../lib/location';
 import { usePhoto } from '../../lib/photos';
-import { useMapMeetups, useMapMembers } from '../../lib/queries';
+import { useMapMeetups, useMapMembers, useMapPlaces, useMapZones } from '../../lib/queries';
 import s from './map-screen.module.css';
 
-type Layer = 'members' | 'meetups';
+type Layer = 'members' | 'meetups' | 'places';
 
 export default function MapScreen() {
   const user = useUser();
@@ -64,9 +68,13 @@ export default function MapScreen() {
   const [selected, setSelected] = useState<MapMember | null>(null);
   const [group, setGroup] = useState<MapMember[] | null>(null);
   const [placePin, setPlacePin] = useState<LatLng | null>(null);
+  const [clubPlace, setClubPlace] = useState<ClubPlace | null>(null);
+  const [zone, setZone] = useState<RedZone | null>(null);
 
   const members = useMapMembers(user.hasAccess);
   const meetups = useMapMeetups();
+  const places = useMapPlaces();
+  const zones = useMapZones();
   const memberList = useMemo(() => members.data?.items ?? [], [members.data]);
 
   const flyTo = (point: LatLng, zoom = 16) => map?.flyTo([point.lat, point.lng], zoom, { duration: 0.7 });
@@ -86,10 +94,12 @@ export default function MapScreen() {
           <AttributionControl position="bottomleft" />
           <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} maxZoom={MAX_ZOOM} />
           <InitialView position={location.sharing ? location.position : null} members={memberList} />
+          <RedZoneLayer zones={zones.data?.items ?? []} onSelect={setZone} />
           {layer === 'members' && user.hasAccess && (
             <MemberLayer members={memberList} onSelect={setSelected} onGroup={setGroup} />
           )}
           {layer === 'meetups' && <MeetupLayer meetups={meetups.data?.items ?? []} />}
+          {layer === 'places' && <PlaceLayer places={places.data?.items ?? []} onSelect={setClubPlace} />}
           {location.sharing && location.position && (
             <Marker
               position={[location.position.lat, location.position.lng]}
@@ -123,6 +133,7 @@ export default function MapScreen() {
           options={[
             { value: 'members', label: t('Members') },
             { value: 'meetups', label: t('Meetups') },
+            { value: 'places', label: t('Places') },
           ]}
         />
       </div>
@@ -133,10 +144,27 @@ export default function MapScreen() {
             <LocateFixed aria-hidden />
           </button>
         )}
-        {user.hasAccess ? <ShareCard /> : <LockedCard />}
+        {user.hasAccess ? <ShareCard /> : <LockedCard ban={user.ban} />}
       </div>
 
-      <MemberSheet member={selected} onClose={() => setSelected(null)} />
+      <MemberProfileSheet
+        member={selected}
+        onClose={() => setSelected(null)}
+        extra={
+          selected && (
+            <>
+              <List>
+                <ListRow icon={<Clock />} title={t('Position shared')} value={timeAgo(selected.updatedAt)} />
+              </List>
+              <SectionFooter>
+                {t('Approximate position (about {meters} m). Never share it outside the club.', { meters: LOCATION_PRECISION_METERS })}
+              </SectionFooter>
+            </>
+          )
+        }
+      />
+      <PlaceSheet place={clubPlace} onClose={() => setClubPlace(null)} />
+      <RedZoneSheet zone={zone} onClose={() => setZone(null)} />
       <Sheet open={group !== null} onClose={() => setGroup(null)} title={t('Members here')}>
         <List>
           {group?.map((member) => (
@@ -367,7 +395,7 @@ function SearchPanel({
 }
 
 function ShareCard() {
-  const { sharing, error, enable, disable } = useLocationSharing();
+  const { sharing, redZone, error, enable, disable } = useLocationSharing();
   const [pending, setPending] = useState<boolean | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -402,6 +430,16 @@ function ShareCard() {
         </div>
         <Toggle checked={checked} onChange={(next) => void toggle(next)} label={t('Share my location')} disabled={pending !== null} />
       </div>
+      {sharing && redZone && (
+        <p className={s.redZoneAlert} role="status">
+          <ShieldAlert aria-hidden />
+          <span>
+            {t('Red zone “{name}”: sharing is paused, the other members do not see you. It resumes when you leave.', {
+              name: redZone.name,
+            })}
+          </span>
+        </p>
+      )}
       {message && <p className={s.shareError}>{message}</p>}
       <p className={s.shareFoot}>
         <Lock aria-hidden />
@@ -411,16 +449,16 @@ function ShareCard() {
   );
 }
 
-function LockedCard() {
+function LockedCard({ ban }: { ban: User['ban'] }) {
   return (
     <div className={s.card}>
       <div className={s.shareRow}>
-        <IconTile color="gray" large>
+        <IconTile color={ban ? 'red' : 'gray'} large>
           <Lock />
         </IconTile>
         <div className={s.shareText}>
           <p className={s.shareTitle}>{t('Member map')}</p>
-          <p className={s.shareSub}>{t('Opens once your membership is active')}</p>
+          <p className={s.shareSub}>{ban ? banSummary(ban) : t('Opens once your membership is active')}</p>
         </div>
       </div>
       <p className={s.lockedText}>{t('Active members see each other here and can share their approximate position.')}</p>
@@ -431,31 +469,3 @@ function LockedCard() {
   );
 }
 
-function MemberSheet({ member, onClose }: { member: MapMember | null; onClose: () => void }) {
-  return (
-    <Sheet open={member !== null} onClose={onClose}>
-      {member && (
-        <>
-          <div className={s.memberHead}>
-            <Avatar name={member.fullName} photo={member.avatar} size={64} online={member.online} />
-            <div>
-              <p className={s.memberName}>{member.fullName}</p>
-              <p className={s.memberRole}>
-                {roleLabel(member.role)}
-                {member.online && <span className={s.onlineText}> · {t('Online')}</span>}
-              </p>
-            </div>
-          </div>
-          <List>
-            <ListRow icon={<Car />} title={t('Car')} value={member.car ?? '—'} />
-            <ListRow icon={<Clock />} title={t('Position shared')} value={timeAgo(member.updatedAt)} />
-          </List>
-          <CarPhotoStrip photos={member.carPhotos} className={s.memberPhotos} />
-          <SectionFooter>
-            {t('Approximate position (about {meters} m). Never share it outside the club.', { meters: LOCATION_PRECISION_METERS })}
-          </SectionFooter>
-        </>
-      )}
-    </Sheet>
-  );
-}

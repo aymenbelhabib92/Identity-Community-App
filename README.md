@@ -9,10 +9,10 @@ same routes.
 
 | Area | What members get | What staff get |
 | --- | --- | --- |
-| **Membership** | Join request, entry fee (20 DT) and dues (5 DT / 3 months) by proof upload or in person, payment history, validity date | Review queue with the proof, verify / reject with a note, record cash payments, approve founding members, suspend, temporary passwords |
+| **Membership** | Join request, entry fee (20 DT) and dues (5 DT / 3 months) by proof upload or in person, payment history, validity date | Review queue with the proof, verify / reject with a note, record cash payments, approve founding members, suspend, bans (3, 7, then 15 days, or for life), temporary passwords |
 | **Pass** | Card with badge number, role, validity; QR code refreshed every few minutes, one tap away on the home banner | In-app scanner (or phone camera) → "Valid member" / "Not valid", with the member's photo |
-| **Profile** | Profile photo, car and up to 4 car photos, green dot when online, ring in the colour of the membership | Photos on member lists, payments and pass checks |
-| **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search | — |
+| **Profile** | Profile photo, cover photo (also at the top of Home), short bio and Instagram, car and up to 4 car photos, green dot when online, role (or "Public" before the membership is confirmed). Tapping a member anywhere (chat, map, meetup attendees, "seen by") opens their profile, photos in a grid as on Instagram | Photos, bio and Instagram on the member's file |
+| **Map** | Opt-in location sharing, snapped to a ~100 m grid, visible to active members only, member photos, clusters, member & place search; the club's places (meeting spots, garages, partners, car washes) and red zones | Admins add places and draw red zones (circles) on a dedicated map |
 | **Meetups** | Public, **secret** (meeting point revealed to confirmed members N hours before) and organizers-only meetups, RSVP, directions | Create / edit / cancel, map picker with place search, attendee list |
 | **Club** | Announcements, club rules, notifications in the app and as **push notifications** on the phone | Post announcements (everyone / staff), edit fees, dues period, grace period, rules, payment instructions |
 | **Chat** | One club chat for active members: live messages, history, replies, @mentions, unread badge, "seen by" (photos under the latest message, list per message), a member's profile (car, car photos) from their photo; chat notifications off / mentions and replies (default) / all messages grouped | Admins delete any message (members delete their own) |
@@ -95,6 +95,7 @@ Demo accounts (password `demo1234` for all):
 | Leila — treasurer | 20 000 003 |
 | Mehdi — admin | 20 000 001 |
 | Walid — pending request (entry fee to review) | 20 000 099 |
+| Bilel — banned (2 more days) | 20 000 028 |
 
 `npm run db:seed -- --reset` wipes the local database and reloads the demo.
 
@@ -137,11 +138,24 @@ Run the API tests against a real PostgreSQL server with
   opt-in, turning it off deletes the position, stale positions disappear (24 h by default), and
   only active members can see the map.
 - **Photos:** the app resizes pictures before upload, which also drops their metadata (such as
-  where they were taken). They are served to signed-in accounts only: profile photos to every
-  account, car photos to active members. The server checks files by content (JPG, PNG, WEBP, 5 MB
+  where they were taken). They are served to signed-in accounts only: profile and cover photos to
+  every account, car photos to active members. A member's profile (bio, Instagram, photos) is
+  shown to active members, never with the phone number or the membership state. The server checks files by content (JPG, PNG, WEBP, 5 MB
   max).
 - **Presence:** "online" means the app talked to the server in the last 5 minutes. Other members
   see that green dot; the membership state of a member is shown to staff only.
+- **Red zones** (drawn by admins, visible to every member): no member is ever shown inside one.
+  A position sent from inside is not stored and the member sees a red alert ("sharing paused") until
+  they leave; positions stored before a zone was drawn are hidden too (`services/zones.ts`).
+- **Bans** (admins): 3 days the first time, 7 the second, then 15 (`BAN_DAYS`; a ban lifted early
+  does not count). A banned member keeps their account, pass and payments but loses the chat, the
+  map and meetups until the ban ends by itself. A ban for life signs them out everywhere and
+  refuses sign-in.
+- **Devices:** the app creates a random identifier on first launch, kept on the device and sent as
+  `X-Device-Id` (`member_devices`). The devices of a member banned for life can neither sign in nor
+  create a new account (and none can be created from the devices of a member serving a ban). A web
+  app cannot read a hardware identifier: clearing the app's data gives a new one, so this deters
+  rather than prevents; new accounts still need the treasurer's approval.
 - **Chat:** readable and writable by members with access only (active, or dues due during the
   grace period); sending is limited to 30 messages a minute per member. The profile opened from
   the chat shows name, role, photo, car and car photos, never the phone number or the membership.

@@ -15,7 +15,7 @@ import { chatMessages, users } from '../db/schema';
 import { fieldError, forbidden, notFound } from '../errors';
 import { requireAccess } from '../plugins/auth';
 import { loadChatMessages, pushChatMessage, unreadCount } from '../services/chat';
-import { memberRefColumns, stateOf, toMemberRef } from '../services/users';
+import { memberRefColumns, stateColumns, stateOf, toMemberRef } from '../services/users';
 
 /** The club chat: one public room for members with access, kept in the database. */
 export const chatRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -164,12 +164,12 @@ export const chatRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { viewer } = request;
       const rows = await app.db
-        .select({ ref: memberRefColumns(users), status: users.status, paidUntil: users.paidUntil, readAt: users.chatReadAt })
+        .select({ ref: memberRefColumns(users), state: stateColumns, readAt: users.chatReadAt })
         .from(users)
         .where(isNotNull(users.chatReadAt));
       return {
         items: rows
-          .filter((row) => stateOf({ ...row, role: row.ref.role }, viewer.settings, viewer.today).hasAccess)
+          .filter((row) => stateOf(row.state, viewer.settings, viewer.today, viewer.now).hasAccess)
           .map((row) => ({ member: toMemberRef(row.ref, viewer.now)!, readAt: row.readAt!.toISOString() })),
       };
     },
@@ -187,13 +187,13 @@ export const chatRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { viewer } = request;
       const rows = await app.db
-        .select({ ref: memberRefColumns(users), status: users.status, paidUntil: users.paidUntil })
+        .select({ ref: memberRefColumns(users), state: stateColumns })
         .from(users)
         .where(ne(users.status, 'rejected'))
         .orderBy(asc(users.fullName));
       return {
         items: rows
-          .filter((row) => stateOf({ ...row, role: row.ref.role }, viewer.settings, viewer.today).hasAccess)
+          .filter((row) => stateOf(row.state, viewer.settings, viewer.today, viewer.now).hasAccess)
           .map((row) => toMemberRef(row.ref, viewer.now)!),
       };
     },

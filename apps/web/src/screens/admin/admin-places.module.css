@@ -1,0 +1,112 @@
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.back {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--floating-2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 14px var(--shadow);
+  color: var(--blue);
+}
+
+.back svg {
+  width: 24px;
+  height: 24px;
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results {
+  max-height: 40dvh;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chipActive {
+  background: var(--blue);
+  color: #fff;
+}
+
+.radius {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.radiusHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.radiusHead strong {
+  color: var(--red-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.radius input {
+  width: 100%;
+  accent-color: var(--red);
+}
+
+.zoneText {
+  display: flex;
+  gap: 8px;
+  margin: 0 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.zoneText svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  color: var(--red);
+}

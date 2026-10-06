@@ -91,8 +91,7 @@ export const announcementRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const recipients = await audienceIds(
         app.db,
-        viewer.settings,
-        viewer.today,
+        viewer,
         (member) => row!.audience === 'all' || (member.hasAccess && isStaff(member.role)),
         viewer.id,
       );

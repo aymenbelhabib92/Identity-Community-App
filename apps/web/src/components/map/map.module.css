@@ -111,6 +111,48 @@
   background: var(--orange);
 }
 
+/* Places of the club, by category. */
+.place {
+  display: grid !important;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.place_spot {
+  background: var(--purple);
+}
+.place_garage {
+  background: var(--orange);
+}
+.place_partner {
+  background: var(--green);
+}
+.place_wash {
+  background: #32ade6;
+}
+.place_other {
+  background: var(--gray);
+}
+
+/* Red zones: positions inside are never shown. Colours set here (Leaflet writes SVG attributes). */
+.redZone {
+  stroke: var(--red);
+  stroke-width: 2px;
+  stroke-dasharray: 6 5;
+  fill: var(--red);
+  fill-opacity: 0.16;
+}
+
+.redZoneSelected {
+  stroke-dasharray: none;
+  stroke-width: 3px;
+  fill-opacity: 0.26;
+}
+
 .pin span {
   position: absolute;
   inset: 0;

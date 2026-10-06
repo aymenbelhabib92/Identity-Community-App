@@ -1,14 +1,18 @@
 import {
   adminMemberListSchema,
   adminMemberSchema,
+  adminMembershipSchema,
   adminMembersQuerySchema,
   adminOverviewSchema,
   adminPaymentListSchema,
   adminPaymentSchema,
   adminPaymentsQuerySchema,
+  banBodySchema,
+  banDays,
   clubSettingsSchema,
   clubSettingsUpdateSchema,
   formatBadgeNumber,
+  formatDayDateTime,
   formatIsoDate,
   formatMoney,
   idParamsSchema,
@@ -24,10 +28,10 @@ import {
   type AdminPayment,
   type MemberFilter,
 } from '@identity/shared';
-import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { DbOrTx } from '../db/client';
-import { memberLocations, payments, pushSubscriptions, users, type PaymentRow, type UserRow } from '../db/schema';
+import { memberBans, memberLocations, payments, pushSubscriptions, users, type PaymentRow, type UserRow } from '../db/schema';
 import { badRequest, conflict, notFound } from '../errors';
 import { generateTemporaryPassword, hashPassword } from '../lib/password';
 import { requirePermission } from '../plugins/auth';
@@ -40,8 +44,18 @@ import {
   reviewers,
   toPaymentDto,
 } from '../services/membership';
+import { banCounts, deviceCounts } from '../services/moderation';
 import { notify } from '../services/notifications';
-import { findUser, memberRefColumns, stateOf, toMemberRef, toUserDto, type MemberRefRow } from '../services/users';
+import {
+  findUser,
+  isBanned,
+  memberRefColumns,
+  stateColumns,
+  stateOf,
+  toMemberRef,
+  toUserDto,
+  type MemberRefRow,
+} from '../services/users';
 import type { Viewer } from '../types';
 
 function matchesFilter(member: AdminMember, filter: MemberFilter): boolean {
@@ -64,10 +78,26 @@ async function pendingPaymentCounts(db: DbOrTx, userId?: string): Promise<Map<st
   return new Map(rows.map((row) => [row.userId, Number(row.count)]));
 }
 
-async function toAdminMember(db: DbOrTx, user: UserRow, viewer: Viewer): Promise<AdminMember> {
-  const counts = await pendingPaymentCounts(db, user.id);
-  return { ...toUserDto(user, viewer), pendingPayments: counts.get(user.id) ?? 0 };
+/** Per member: payments waiting for review, bans so far, devices used. */
+async function memberCounts(db: DbOrTx, userId?: string) {
+  const [payments, bans, devices] = await Promise.all([
+    pendingPaymentCounts(db, userId),
+    banCounts(db, userId),
+    deviceCounts(db, userId),
+  ]);
+  return (id: string) => ({
+    pendingPayments: payments.get(id) ?? 0,
+    bans: bans.get(id) ?? 0,
+    devices: devices.get(id) ?? 0,
+  });
 }
+
+async function toAdminMember(db: DbOrTx, user: UserRow, viewer: Viewer): Promise<AdminMember> {
+  const counts = await memberCounts(db, user.id);
+  return { ...toUserDto(user, viewer), ...counts(user.id) };
+}
+
+const DAY_MS = 86_400_000;
 
 async function loadAdminPayment(db: DbOrTx, paymentId: string, viewer: Viewer): Promise<AdminPayment | null> {
   const [row] = await db
@@ -90,7 +120,7 @@ function toAdminPayment(payment: PaymentRow, member: UserRow, reviewer: MemberRe
       phone: member.phone,
       avatar: member.avatarPhotoId,
       badgeNumber: member.badgeNumber,
-      state: stateOf(member, viewer.settings, viewer.today).state,
+      state: stateOf(member, viewer.settings, viewer.today, viewer.now).state,
     },
   };
 }
@@ -105,7 +135,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const { viewer } = request;
-      const rows = await app.db.select({ status: users.status, role: users.role, paidUntil: users.paidUntil }).from(users);
+      const rows = await app.db.select(stateColumns).from(users);
       const overview = {
         totalMembers: 0,
         pendingMembers: 0,
@@ -113,10 +143,11 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         dueMembers: 0,
         expiredMembers: 0,
         suspendedMembers: 0,
+        bannedMembers: 0,
         pendingPayments: 0,
       };
       for (const row of rows) {
-        const { state } = stateOf(row, viewer.settings, viewer.today);
+        const { state } = stateOf(row, viewer.settings, viewer.today, viewer.now);
         if (state === 'rejected') continue;
         overview.totalMembers++;
         if (state === 'pending') overview.pendingMembers++;
@@ -124,6 +155,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         else if (state === 'due') overview.dueMembers++;
         else if (state === 'expired') overview.expiredMembers++;
         else if (state === 'suspended') overview.suspendedMembers++;
+        else if (state === 'banned') overview.bannedMembers++;
       }
       const [pending] = await app.db
         .select({ count: sql<number>`count(*)::int` })
@@ -258,9 +290,9 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         where = digits.length >= 2 ? or(ilike(users.fullName, pattern), ilike(users.phone, `%${digits}%`)) : ilike(users.fullName, pattern);
       }
       const rows = await app.db.select().from(users).where(where).orderBy(asc(users.fullName));
-      const counts = await pendingPaymentCounts(app.db);
+      const counts = await memberCounts(app.db);
       const items = rows
-        .map((user) => ({ ...toUserDto(user, viewer), pendingPayments: counts.get(user.id) ?? 0 }))
+        .map((user) => ({ ...toUserDto(user, viewer), ...counts(user.id) }))
         .filter((member) => matchesFilter(member, filter))
         .sort((a, b) => Number(b.state === 'pending') - Number(a.state === 'pending'));
       return { items };
@@ -273,16 +305,18 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       preHandler: requirePermission('members:view'),
       schema: {
         tags: ['admin'],
-        summary: "A member's membership and payments",
+        summary: "A member's membership and payments, bans so far and devices used",
         params: idParamsSchema,
-        response: { 200: membershipSchema },
+        response: { 200: adminMembershipSchema },
       },
     },
     async (request) => {
       const { viewer } = request;
       const member = await findUser(app.db, request.params.id);
       if (!member) throw notFound('Member');
-      return buildMembership(app.db, member, viewer);
+      const [membership, counts] = await Promise.all([buildMembership(app.db, member, viewer), memberCounts(app.db, member.id)]);
+      const { bans, devices } = counts(member.id);
+      return { ...membership, bans, devices };
     },
   );
 
@@ -449,6 +483,117 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       // The member's devices are signed out: they stop receiving notifications too.
       await app.db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, target.id));
       return { temporaryPassword };
+    },
+  );
+
+  app.post(
+    '/members/:id/ban',
+    {
+      preHandler: requirePermission('members:manage'),
+      schema: {
+        tags: ['admin'],
+        summary: 'Ban a member',
+        description:
+          'For 3 days the first time, 7 the second, then 15 (BAN_DAYS; bans lifted early do not count). ' +
+          'While banned, the member keeps their pass and payments but loses the chat, the map and meetups; ' +
+          'the ban ends by itself. `permanent`: for life — signed out everywhere, sign-in refused, and the ' +
+          'devices they used can neither sign in nor create an account.',
+        params: idParamsSchema,
+        body: banBodySchema,
+        response: { 200: adminMemberSchema },
+      },
+    },
+    async (request) => {
+      const { viewer } = request;
+      const { permanent, reason } = request.body;
+      const target = await findUser(app.db, request.params.id);
+      if (!target) throw notFound('Member');
+      if (target.id === viewer.id) throw badRequest('CANNOT_CHANGE_SELF', 'You cannot ban yourself.');
+      if (target.bannedForever) throw conflict('ALREADY_BANNED', 'This member is already banned for life.');
+      if (!permanent && isBanned(target, viewer.now)) {
+        throw conflict('ALREADY_BANNED', 'This member is already banned until {date}.', {
+          date: formatDayDateTime(target.bannedUntil!, app.config.timezone, viewer.lang),
+        });
+      }
+
+      const level = ((await banCounts(app.db, target.id)).get(target.id) ?? 0) + 1;
+      const days = banDays(level);
+      const endsAt = permanent ? null : new Date(viewer.now.getTime() + days * DAY_MS);
+      await app.db.transaction(async (tx) => {
+        await tx
+          .insert(memberBans)
+          .values({ userId: target.id, byId: viewer.id, level, permanent, reason: reason || null, startsAt: viewer.now, endsAt });
+        await tx
+          .update(users)
+          .set({
+            bannedUntil: endsAt,
+            bannedForever: permanent,
+            banReason: reason || null,
+            locationSharing: false,
+            // For life: every session ends now.
+            ...(permanent && { tokenVersion: sql`${users.tokenVersion} + 1` }),
+          })
+          .where(eq(users.id, target.id));
+        await tx.delete(memberLocations).where(eq(memberLocations.userId, target.id));
+        if (permanent) await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, target.id));
+      });
+      app.chat.closeUser(target.id);
+
+      if (endsAt) {
+        await notify(app, [target.id], (tr, lang) => {
+          const until = tr('Chat, map and meetups are closed until {date}.', {
+            date: formatDayDateTime(endsAt, app.config.timezone, lang),
+          });
+          return {
+            kind: 'membership',
+            title: tr('Banned for {days} days', { days }),
+            body: reason ? `${reason} · ${until}` : until,
+            link: '/home',
+          };
+        });
+      }
+      return toAdminMember(app.db, (await findUser(app.db, target.id))!, viewer);
+    },
+  );
+
+  app.post(
+    '/members/:id/unban',
+    {
+      preHandler: requirePermission('members:manage'),
+      schema: {
+        tags: ['admin'],
+        summary: 'Lift a ban',
+        description: 'A ban lifted before its end does not count in the tiers.',
+        params: idParamsSchema,
+        response: { 200: adminMemberSchema },
+      },
+    },
+    async (request) => {
+      const { viewer } = request;
+      const target = await findUser(app.db, request.params.id);
+      if (!target) throw notFound('Member');
+      if (!isBanned(target, viewer.now)) throw conflict('NOT_BANNED', 'This member is not banned.');
+
+      await app.db.transaction(async (tx) => {
+        await tx.update(users).set({ bannedUntil: null, bannedForever: false, banReason: null }).where(eq(users.id, target.id));
+        await tx
+          .update(memberBans)
+          .set({ liftedAt: viewer.now, liftedById: viewer.id })
+          .where(
+            and(
+              eq(memberBans.userId, target.id),
+              isNull(memberBans.liftedAt),
+              or(eq(memberBans.permanent, true), gt(memberBans.endsAt, viewer.now)),
+            ),
+          );
+      });
+      await notify(app, [target.id], (tr) => ({
+        kind: 'membership',
+        title: tr('Ban lifted'),
+        body: tr('Chat, map and meetups are open again.'),
+        link: '/home',
+      }));
+      return toAdminMember(app.db, (await findUser(app.db, target.id))!, viewer);
     },
   );
 

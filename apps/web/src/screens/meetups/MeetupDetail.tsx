@@ -7,6 +7,7 @@ import {
   MEETUP_AUDIENCE_LABELS,
   shortName,
   t,
+  type Attendee,
   type Meetup,
 } from '@identity/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import { Calendar, Check, CircleUser, Clock, Lock, MapPin, Pencil, Users } from 
 import { lazy, Suspense, useState } from 'react';
 import { useParams } from 'react-router';
 import { Shards } from '../../components/brand/Shards';
+import { MemberProfileSheet, type ProfileTarget } from '../../components/members/MemberProfileSheet';
 import {
   Avatar,
   BackLink,
@@ -57,6 +59,7 @@ function Detail({ meetup }: { meetup: Meetup }) {
   const toast = useToast();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
   const staff = user.hasAccess && isStaff(user.role);
   const canSeeAttendees = staff || meetup.host?.id === user.id;
 
@@ -187,9 +190,16 @@ function Detail({ meetup }: { meetup: Meetup }) {
 
       {canSeeAttendees && (
         <Sheet open={showAttendees} onClose={() => setShowAttendees(false)} title={t('Going')}>
-          <Attendees meetupId={meetup.id} />
+          <Attendees
+            meetupId={meetup.id}
+            onOpen={(attendee) => {
+              setShowAttendees(false);
+              setProfile(attendee);
+            }}
+          />
         </Sheet>
       )}
+      <MemberProfileSheet member={profile} onClose={() => setProfile(null)} />
     </>
   );
 }
@@ -244,7 +254,7 @@ function Hero({ meetup }: { meetup: Meetup }) {
   );
 }
 
-function Attendees({ meetupId }: { meetupId: string }) {
+function Attendees({ meetupId, onOpen }: { meetupId: string; onOpen: (attendee: Attendee) => void }) {
   const { data, isPending, error } = useQuery({
     queryKey: keys.attendees(meetupId),
     queryFn: () => api.meetups.attendees(meetupId),
@@ -259,6 +269,8 @@ function Attendees({ meetupId }: { meetupId: string }) {
           leading={<Avatar name={attendee.fullName} photo={attendee.avatar} size={36} online={attendee.online} />}
           title={attendee.fullName}
           subtitle={[formatBadgeNumber(attendee.badgeNumber), attendee.car].filter(Boolean).join(' · ')}
+          onClick={() => onOpen(attendee)}
+          chevron
         />
       ))}
     </List>

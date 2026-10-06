@@ -12,7 +12,7 @@ const ACCEPTED_PHOTOS: readonly string[] = PHOTO_MIME_TYPES;
 const uploadRateLimit = { max: 20, timeWindow: '1 minute' };
 
 /**
- * Profile photos and car photos. Apps resize pictures before sending them (which
+ * Profile, cover and car photos. Apps resize pictures before sending them (which
  * also drops their metadata, e.g. where they were taken); the server only checks
  * that the file is a photo and stores it.
  */
@@ -48,51 +48,63 @@ export const photoRoutes: FastifyPluginAsyncZod = async (app) => {
     if (row) await app.storage.remove(row.file);
   }
 
-  app.put(
-    '/me/avatar',
-    {
-      config: { rateLimit: uploadRateLimit },
-      schema: {
-        tags: ['me'],
-        summary: 'Set my profile photo',
-        description: 'multipart/form-data with a `file` part (JPG, PNG or WEBP, max 5 MB). Replaces the current photo.',
-        consumes: ['multipart/form-data'],
-        response: { 200: userSchema },
-      },
-    },
-    async (request) => {
-      const { viewer } = request;
-      const photo = await receivePhoto(request);
-      const previous = viewer.user.avatarPhotoId;
-      let user;
-      try {
-        user = await app.db.transaction(async (tx) => {
-          const [row] = await tx
-            .insert(memberPhotos)
-            .values({ userId: viewer.id, kind: 'avatar', file: photo.key, mime: photo.mime })
-            .returning();
-          const [updated] = await tx.update(users).set({ avatarPhotoId: row!.id }).where(eq(users.id, viewer.id)).returning();
-          return updated!;
-        });
-      } catch (err) {
-        await app.storage.remove(photo.key);
-        throw err;
-      }
-      if (previous) await deletePhoto(previous);
-      return toUserDto(user, viewer);
-    },
-  );
+  /** The profile photo and the cover photo: one each, a new one replaces the previous. */
+  const singlePhotos = {
+    avatar: { path: '/me/avatar', column: 'avatarPhotoId', name: 'profile photo' },
+    cover: { path: '/me/cover', column: 'coverPhotoId', name: 'cover photo (wide, at the top of my profile)' },
+  } as const;
 
-  app.delete(
-    '/me/avatar',
-    { schema: { tags: ['me'], summary: 'Remove my profile photo', response: { 200: userSchema } } },
-    async (request) => {
-      const { viewer } = request;
-      const [user] = await app.db.update(users).set({ avatarPhotoId: null }).where(eq(users.id, viewer.id)).returning();
-      if (viewer.user.avatarPhotoId) await deletePhoto(viewer.user.avatarPhotoId);
-      return toUserDto(user!, viewer);
-    },
-  );
+  for (const [kind, { path, column, name }] of Object.entries(singlePhotos) as [
+    keyof typeof singlePhotos,
+    (typeof singlePhotos)[keyof typeof singlePhotos],
+  ][]) {
+    app.put(
+      path,
+      {
+        config: { rateLimit: uploadRateLimit },
+        schema: {
+          tags: ['me'],
+          summary: `Set my ${name}`,
+          description: 'multipart/form-data with a `file` part (JPG, PNG or WEBP, max 5 MB). Replaces the current photo.',
+          consumes: ['multipart/form-data'],
+          response: { 200: userSchema },
+        },
+      },
+      async (request) => {
+        const { viewer } = request;
+        const photo = await receivePhoto(request);
+        const previous = viewer.user[column];
+        let user;
+        try {
+          user = await app.db.transaction(async (tx) => {
+            const [row] = await tx
+              .insert(memberPhotos)
+              .values({ userId: viewer.id, kind, file: photo.key, mime: photo.mime })
+              .returning();
+            const [updated] = await tx.update(users).set({ [column]: row!.id }).where(eq(users.id, viewer.id)).returning();
+            return updated!;
+          });
+        } catch (err) {
+          await app.storage.remove(photo.key);
+          throw err;
+        }
+        if (previous) await deletePhoto(previous);
+        return toUserDto(user, viewer);
+      },
+    );
+
+    app.delete(
+      path,
+      { schema: { tags: ['me'], summary: `Remove my ${name}`, response: { 200: userSchema } } },
+      async (request) => {
+        const { viewer } = request;
+        const [user] = await app.db.update(users).set({ [column]: null }).where(eq(users.id, viewer.id)).returning();
+        const previous = viewer.user[column];
+        if (previous) await deletePhoto(previous);
+        return toUserDto(user!, viewer);
+      },
+    );
+  }
 
   app.post(
     '/me/car-photos',
@@ -165,9 +177,9 @@ export const photoRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: ['members'],
-        summary: 'A profile or car photo',
+        summary: 'A profile, cover or car photo',
         description:
-          'Profile photos are shown to every signed-in account; car photos to active members (and to their owner). ' +
+          'Profile and cover photos are shown to every signed-in account; car photos to active members (and to their owner). ' +
           'A photo never changes — a new upload gets a new id — so it can be cached for good.',
         params: idParamsSchema,
       },
@@ -175,7 +187,7 @@ export const photoRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const { viewer } = request;
       const [photo] = await app.db.select().from(memberPhotos).where(eq(memberPhotos.id, request.params.id)).limit(1);
-      const allowed = photo && (photo.kind === 'avatar' || photo.userId === viewer.id || viewer.hasAccess);
+      const allowed = photo && (photo.kind !== 'car' || photo.userId === viewer.id || viewer.hasAccess);
       if (!photo || !allowed) throw notFound('Photo');
       try {
         await access(app.storage.path(photo.file));

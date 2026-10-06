@@ -1,4 +1,4 @@
-import { distanceMeters, LOCATION_PRECISION_METERS, t, type LatLng } from '@identity/shared';
+import { distanceMeters, LOCATION_PRECISION_METERS, t, type LatLng, type MyLocation } from '@identity/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from './api';
@@ -16,6 +16,8 @@ interface LocationContextValue {
   /** Exact device position — shown to this member only, never sent as is. */
   position: LatLng | null;
   sharing: boolean;
+  /** The member is in this red zone: their position is hidden until they leave it (the server decides). */
+  redZone: MyLocation['redZone'];
   error: string | null;
   enable(): Promise<void>;
   disable(): Promise<void>;
@@ -58,12 +60,14 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const sharing = Boolean(user?.locationSharing && user.hasAccess);
   const [position, setPosition] = useState<LatLng | null>(null);
+  const [redZone, setRedZone] = useState<MyLocation['redZone']>(null);
   const [error, setError] = useState<string | null>(null);
   const lastSent = useRef<{ at: number; point: LatLng } | null>(null);
 
   useEffect(() => {
     if (!sharing || !('geolocation' in navigator)) {
       setPosition(null);
+      setRedZone(null);
       return;
     }
     const watchId = navigator.geolocation.watchPosition(
@@ -74,9 +78,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         const last = lastSent.current;
         if (!last || Date.now() - last.at > SEND_EVERY_MS || distanceMeters(last.point, point) > SEND_AFTER_METERS) {
           lastSent.current = { at: Date.now(), point };
-          api.me.updateLocation({ ...point, accuracy: pos.coords.accuracy }).catch(() => {
-            lastSent.current = null;
-          });
+          api.me.updateLocation({ ...point, accuracy: pos.coords.accuracy }).then(
+            (location) => setRedZone(location.redZone),
+            () => {
+              lastSent.current = null;
+            },
+          );
         }
       },
       (err) => setError(geolocationMessage(err)),
@@ -88,7 +95,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const enable = useCallback(async () => {
     const point = await currentPosition();
     await api.me.setLocationSharing(true);
-    await api.me.updateLocation(point);
+    const location = await api.me.updateLocation(point);
+    setRedZone(location.redZone);
     lastSent.current = { at: Date.now(), point };
     setPosition(point);
     setError(null);
@@ -99,12 +107,13 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     await api.me.setLocationSharing(false);
     lastSent.current = null;
     setPosition(null);
+    setRedZone(null);
     await queryClient.invalidateQueries({ queryKey: keys.me });
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ position, sharing, error, enable, disable }),
-    [position, sharing, error, enable, disable],
+    () => ({ position, sharing, redZone, error, enable, disable }),
+    [position, sharing, redZone, error, enable, disable],
   );
   return <LocationContext value={value}>{children}</LocationContext>;
 }

@@ -1,4 +1,4 @@
-import { formatBadgeNumber, formatPhone, MEMBER_FILTERS, t, type MemberFilter } from '@identity/shared';
+import { formatBadgeNumber, formatPhone, MEMBER_FILTERS, t, type MemberFilter, type MembershipState } from '@identity/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -19,10 +19,19 @@ const FILTER_LABELS: Record<MemberFilter, string> = {
   due: 'Dues due',
   expired: 'Expired',
   suspended: 'Suspended',
+  banned: 'Banned',
   staff: 'Staff',
 };
 
-const STATE_CLASS = { active: s.green, pending: s.blue, due: s.orange, expired: s.red, suspended: s.red, rejected: undefined };
+const STATE_CLASS: Record<MembershipState, string | undefined> = {
+  active: s.green,
+  pending: s.blue,
+  due: s.orange,
+  expired: s.red,
+  suspended: s.red,
+  banned: s.red,
+  rejected: undefined,
+};
 
 export default function AdminMembers() {
   const [params, setParams] = useSearchParams();

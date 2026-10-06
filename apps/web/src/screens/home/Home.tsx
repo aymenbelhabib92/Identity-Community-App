@@ -1,10 +1,11 @@
-import { firstName, t, tn } from '@identity/shared';
+import { firstName, t, tn, type User } from '@identity/shared';
 import { Bell, Book, CalendarPlus, Navigation, QrCode, Shield, Upload } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Logo } from '../../components/brand/Logo';
 import { Shards } from '../../components/brand/Shards';
-import { StatePill } from '../../components/StatePill';
+import { Photo } from '../../components/photos/Photos';
+import { RolePill } from '../../components/RolePill';
 import {
   Avatar,
   Card,
@@ -20,6 +21,7 @@ import {
   type TileColor,
 } from '../../components/ui';
 import { useCan, useUser } from '../../lib/auth';
+import { cx } from '../../lib/cx';
 import { greeting } from '../../lib/format';
 import { isActiveMeetup } from '../../lib/meetups';
 import { useAdminOverview, useMeetups, useNotifications } from '../../lib/queries';
@@ -50,22 +52,12 @@ export default function Home() {
             <Bell aria-hidden strokeWidth={2} />
           </RoundButton>
           <Link to="/profile" aria-label={t('My account')} className={s.account}>
-            <Avatar name={user.fullName} photo={user.avatar} state={user.state} online />
+            <Avatar name={user.fullName} photo={user.avatar} online />
           </Link>
         </div>
       </header>
 
-      <Shards className={s.banner}>
-        <Logo height={40} className={s.bannerLogo} />
-        <div className={s.bannerSide}>
-          <StatePill state={user.state} />
-          {hasPass && (
-            <button type="button" className={s.bannerQr} onClick={() => setQrOpen(true)} aria-label={t('Show my pass QR code')}>
-              <QrCode aria-hidden strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </Shards>
+      <HomeBanner user={user} onQr={hasPass ? () => setQrOpen(true) : undefined} />
 
       <MembershipAlert user={user} />
 
@@ -102,6 +94,33 @@ export default function Home() {
 
       {hasPass && <QrSheet open={qrOpen} onClose={() => setQrOpen(false)} member={user} />}
     </Screen>
+  );
+}
+
+/**
+ * Under the name: the member's cover photo (or the club's texture until they
+ * choose one), their role, and the pass QR code for check-in.
+ */
+function HomeBanner({ user, onQr }: { user: User; onQr?: () => void }) {
+  const content = (
+    <>
+      <Logo height={user.cover ? 34 : 40} className={s.bannerLogo} />
+      <div className={s.bannerSide}>
+        <RolePill role={user.role} member={user.approvedAt !== null} />
+        {onQr && (
+          <button type="button" className={s.bannerQr} onClick={onQr} aria-label={t('Show my pass QR code')}>
+            <QrCode aria-hidden strokeWidth={2} />
+          </button>
+        )}
+      </div>
+    </>
+  );
+  if (!user.cover) return <Shards className={s.banner}>{content}</Shards>;
+  return (
+    <div className={cx(s.banner, s.coverBanner, 'theme-dark')}>
+      <Photo id={user.cover} className={s.coverImage} />
+      {content}
+    </div>
   );
 }
 

@@ -94,6 +94,15 @@ export class ChatHub {
     this.streams.delete(stream);
   }
 
+  /** Ends the streams of a member who lost access (banned). */
+  closeUser(userId: string): void {
+    for (const [stream, id] of this.streams) {
+      if (id !== userId) continue;
+      this.streams.delete(stream);
+      stream.end();
+    }
+  }
+
   isWatching(userId: string): boolean {
     for (const id of this.streams.values()) if (id === userId) return true;
     return false;
@@ -140,7 +149,7 @@ export async function pushChatMessage(
   const out: { userId: string; message: PushMessage }[] = [];
 
   for (const user of candidates) {
-    if (!stateOf(user, settings, today).hasAccess || app.chat.isWatching(user.id)) continue;
+    if (!stateOf(user, settings, today, now).hasAccess || app.chat.isWatching(user.id)) continue;
     const lang: Language = user.language ?? 'en';
     const tr = (key: string, params?: Record<string, string | number>) => translate(lang, key, params);
     const mentioned = message.mentions.includes(user.id);

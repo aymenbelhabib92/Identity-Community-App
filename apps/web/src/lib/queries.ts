@@ -21,6 +21,8 @@ export const keys = {
   member: (id: string) => ['members', id] as const,
   mapMembers: ['map', 'members'] as const,
   mapMeetups: ['map', 'meetups'] as const,
+  mapPlaces: ['map', 'places'] as const,
+  mapZones: ['map', 'zones'] as const,
   admin: ['admin'] as const,
   adminOverview: ['admin', 'overview'] as const,
   adminPayments: (status: string) => ['admin', 'payments', status] as const,
@@ -58,6 +60,10 @@ export const useMapMembers = (enabled: boolean) =>
   useQuery({ queryKey: keys.mapMembers, queryFn: api.map.members, enabled, refetchInterval: 30_000 });
 
 export const useMapMeetups = () => useQuery({ queryKey: keys.mapMeetups, queryFn: api.map.meetups });
+
+export const useMapPlaces = () => useQuery({ queryKey: keys.mapPlaces, queryFn: api.map.places, staleTime: 5 * 60_000 });
+
+export const useMapZones = () => useQuery({ queryKey: keys.mapZones, queryFn: api.map.zones, staleTime: 5 * 60_000 });
 
 export const useAdminOverview = (enabled = true) =>
   useQuery({ queryKey: keys.adminOverview, queryFn: api.admin.overview, enabled, refetchInterval: 60_000 });

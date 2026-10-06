@@ -88,11 +88,86 @@ button.notification:active {
   text-align: center;
 }
 
-/* The profile photo, with a camera badge: tap to change it. */
+/* The cover photo across the top of the account; tap to change it. */
+.coverButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  max-height: 220px;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.coverImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverBadge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+.coverBadge svg {
+  width: 17px;
+  height: 17px;
+}
+
+.coverPreview {
+  overflow: hidden;
+  aspect-ratio: 3 / 1;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+/* The profile photo overlaps the bottom of the cover, with a camera badge: tap to change it. */
 .avatarButton {
   position: relative;
-  margin-bottom: 4px;
+  margin: -52px 0 4px;
   border-radius: 50%;
+}
+
+.profileAvatar {
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.profileBio {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.counter {
+  margin: 6px 16px 0;
+  font-size: 12px;
+  text-align: right;
+  color: var(--text-3);
+}
+
+.invalidArea {
+  box-shadow: inset 3px 0 0 var(--red);
 }
 
 .avatarBadge {

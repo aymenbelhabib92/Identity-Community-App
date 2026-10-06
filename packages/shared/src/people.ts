@@ -37,6 +37,23 @@ export function shortName(fullName: string): string {
   return second ? `${first} ${second[0]!.toUpperCase()}.` : first;
 }
 
+/** A short presentation on the member's profile, as on Instagram. */
+export const BIO_MAX_LENGTH = 150;
+
+/**
+ * "@karim.cupra", "karim.cupra" or a link to the profile → "karim.cupra";
+ * null when it is not an Instagram name.
+ */
+export function normalizeInstagram(input: string): string | null {
+  let handle = input.trim();
+  const link = /^(?:https?:\/\/)?(?:www\.|m\.)?instagram\.com\/([^/?#\s]+)/i.exec(handle);
+  if (link) handle = link[1]!;
+  handle = handle.replace(/^@/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null;
+}
+
+export const instagramUrl = (handle: string) => `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+
 /** "Karim Ben Salah" → "KB" */
 export function initials(fullName: string): string {
   const [first, second] = nameParts(fullName);

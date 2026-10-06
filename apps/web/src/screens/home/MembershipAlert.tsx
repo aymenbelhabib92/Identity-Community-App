@@ -1,7 +1,8 @@
 import { formatMoney, formatPhone, t, type User } from '@identity/shared';
-import { CircleAlert, Wallet } from 'lucide-react';
+import { Ban, CircleAlert, Wallet } from 'lucide-react';
 import { Steps, type StepItem } from '../../components/Steps';
 import { ButtonLink, Card, IconTile, Notice } from '../../components/ui';
+import { banSummary } from '../../lib/format';
 import { useMembership } from '../../lib/queries';
 import s from './home.module.css';
 
@@ -10,6 +11,18 @@ export function MembershipAlert({ user }: { user: User }) {
   const needsMembership = user.state === 'pending' || user.state === 'due' || user.state === 'expired';
   const { data: membership } = useMembership(needsMembership);
 
+  if (user.state === 'banned' && user.ban) {
+    return (
+      <div className={s.pendingSteps}>
+        <Notice tone="red" icon={<Ban aria-hidden />}>
+          <strong>{banSummary(user.ban)}</strong>
+          <br />
+          {user.ban.reason ? `${user.ban.reason} · ` : ''}
+          {t('The chat, the map and meetups are closed meanwhile. Your pass and payments stay available.')}
+        </Notice>
+      </div>
+    );
+  }
   if (user.state === 'suspended') {
     return (
       <div className={s.pendingSteps}>

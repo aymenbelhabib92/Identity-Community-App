@@ -1,11 +1,11 @@
-import { initials, type MembershipState } from '@identity/shared';
+import { initials } from '@identity/shared';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from '../../lib/cx';
 import { usePhoto } from '../../lib/photos';
 import s from './ui.module.css';
 
-export type Tone = 'red' | 'blue' | 'orange' | 'green' | 'gray';
+export type Tone = 'red' | 'blue' | 'orange' | 'green' | 'gray' | 'purple';
 export type TileColor = 'blue' | 'green' | 'orange' | 'red' | 'gray' | 'purple';
 
 const TONE: Record<Tone, string> = {
@@ -14,6 +14,7 @@ const TONE: Record<Tone, string> = {
   orange: s.toneOrange!,
   green: s.toneGreen!,
   gray: s.toneGray!,
+  purple: s.tonePurple!,
 };
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'plain';
@@ -182,37 +183,25 @@ export function IconTile({ color, large, children }: { color: TileColor; large?:
   );
 }
 
-const STATE_RING: Record<MembershipState, string | undefined> = {
-  active: s.ringGreen,
-  due: s.ringOrange,
-  pending: s.ringOrange,
-  expired: s.ringRed,
-  suspended: s.ringRed,
-  rejected: undefined,
-};
-
-/**
- * A member's photo, or their initials. `state` draws a ring in the colour of
- * their membership (green when active); `online` adds a green dot.
- */
+/** A member's photo, or their initials; `online` adds a green dot. */
 export function Avatar({
   name,
   photo,
   size = 44,
-  state,
   online,
+  className,
 }: {
   name: string;
   /** Photo id (see lib/photos). */
   photo?: string | null;
   size?: number;
-  state?: MembershipState;
   online?: boolean;
+  className?: string;
 }) {
   const url = usePhoto(photo);
   return (
     <span
-      className={cx(s.avatar, state && s.ring, state && STATE_RING[state])}
+      className={cx(s.avatar, className)}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
       aria-hidden
     >

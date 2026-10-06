@@ -1,18 +1,21 @@
 import {
+  banDays,
   formatBadgeNumber,
   formatIsoDate,
   formatMoney,
   formatPhone,
+  instagramUrl,
   LANGUAGE_NAMES,
   ROLES,
   t,
+  type AdminMembership,
   type Membership,
   type PaymentKind,
   type Role,
   type UpdateMemberBody,
 } from '@identity/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Check, CircleCheck, KeyRound, Phone, Receipt, ShieldCheck, UserCheck, UserX, Wallet } from 'lucide-react';
+import { Ban, Check, CircleCheck, KeyRound, Phone, Receipt, ShieldCheck, Timer, UserCheck, UserX, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { PaymentRow } from '../../components/payments/Payments';
@@ -31,6 +34,7 @@ import {
   List,
   ListRow,
   Loading,
+  Notice,
   Screen,
   SectionHeader,
   Segmented,
@@ -39,12 +43,12 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useCan, useUser } from '../../lib/auth';
-import { dateOf, roleLabel } from '../../lib/format';
+import { banSummary, dateOf, roleLabel } from '../../lib/format';
 import { keys } from '../../lib/queries';
 import s from './admin.module.css';
 import { ReviewSheet, type ReviewTarget } from './ReviewSheet';
 
-type SheetName = 'record' | 'role' | 'suspend' | 'reactivate' | 'approve' | 'decline' | 'password' | null;
+type SheetName = 'record' | 'role' | 'suspend' | 'reactivate' | 'approve' | 'decline' | 'password' | 'ban' | 'banForLife' | 'unban' | null;
 
 export default function AdminMember() {
   const { id = '' } = useParams();
@@ -64,9 +68,10 @@ export default function AdminMember() {
   );
 }
 
-function MemberDetail({ membership }: { membership: Membership }) {
+function MemberDetail({ membership }: { membership: AdminMembership }) {
   const me = useUser();
   const { member, fees } = membership;
+  const nextBanDays = banDays(membership.bans + 1);
   const canManage = useCan('members:manage') && member.id !== me.id;
   const canRecord = useCan('payments:review');
   const [sheet, setSheet] = useState<SheetName>(null);
@@ -79,7 +84,7 @@ function MemberDetail({ membership }: { membership: Membership }) {
   return (
     <>
       <div className={s.memberHead}>
-        <Avatar name={member.fullName} photo={member.avatar} size={64} state={member.state} online={member.online} />
+        <Avatar name={member.fullName} photo={member.avatar} size={64} online={member.online} />
         <div>
           <p className={s.memberName}>{member.fullName}</p>
           <div className={s.memberMeta}>
@@ -88,17 +93,34 @@ function MemberDetail({ membership }: { membership: Membership }) {
           </div>
         </div>
       </div>
+      {member.ban && (
+        <Notice tone="red" icon={<Ban aria-hidden />}>
+          <strong>{banSummary(member.ban)}</strong>
+          {member.ban.reason && (
+            <>
+              <br />
+              {member.ban.reason}
+            </>
+          )}
+        </Notice>
+      )}
 
       <SectionHeader>{t('Membership')}</SectionHeader>
       <List>
         <ListRow title={t('Badge')} value={formatBadgeNumber(member.badgeNumber)} />
         <ListRow title={t('Role')} value={roleLabel(member.role)} />
         <ListRow title={t('Car')} value={member.car ?? '—'} />
+        {member.instagram && (
+          <ListRow title={t('Instagram')} value={`@${member.instagram}`} href={instagramUrl(member.instagram)} />
+        )}
+        {member.bio && <ListRow title={t('Bio')} subtitle={member.bio} />}
         <ListRow title={t('Requested')} value={dateOf(member.createdAt)} />
         <ListRow title={t('Member since')} value={member.approvedAt ? dateOf(member.approvedAt) : '—'} />
         <ListRow title={t('Valid until')} value={member.paidUntil ? formatIsoDate(member.paidUntil) : '—'} />
         <ListRow title={t('Location sharing')} value={member.locationSharing ? t('On') : t('Off')} />
         <ListRow title={t('Language')} value={member.language ? LANGUAGE_NAMES[member.language] : '—'} />
+        <ListRow title={t('Bans so far')} value={membership.bans} />
+        <ListRow title={t('Devices used')} value={membership.devices} />
       </List>
       <CarPhotoStrip photos={member.carPhotos} className={s.carPhotos} />
 
@@ -161,6 +183,40 @@ function MemberDetail({ membership }: { membership: Membership }) {
           />
         )}
       </List>
+
+      {canManage && member.status !== 'rejected' && (
+        <>
+          <SectionHeader>{t('Bans')}</SectionHeader>
+          <List>
+            {member.ban ? (
+              <ListRow
+                tile={{ icon: <CircleCheck />, color: 'green' }}
+                title={t('Lift the ban')}
+                subtitle={banSummary(member.ban)}
+                onClick={() => setSheet('unban')}
+                chevron
+              />
+            ) : (
+              <ListRow
+                tile={{ icon: <Timer />, color: 'orange' }}
+                title={t('Ban for {days} days', { days: nextBanDays })}
+                subtitle={t('Ban no. {count} · 3, 7, then 15 days', { count: membership.bans + 1 })}
+                onClick={() => setSheet('ban')}
+                destructive
+              />
+            )}
+            {member.ban?.until !== null && (
+              <ListRow
+                tile={{ icon: <Ban />, color: 'red' }}
+                title={t('Ban for life')}
+                subtitle={t('Signed out, sign-in refused, their phones blocked')}
+                onClick={() => setSheet('banForLife')}
+                destructive
+              />
+            )}
+          </List>
+        </>
+      )}
 
       <SectionHeader>{t('Payments')}</SectionHeader>
       {membership.payments.length === 0 ? (
@@ -225,6 +281,9 @@ function MemberDetail({ membership }: { membership: Membership }) {
         danger
       />
       <PasswordSheet open={sheet === 'password'} onClose={close} memberId={member.id} name={member.fullName} />
+      <BanSheet open={sheet === 'ban'} onClose={close} memberId={member.id} name={member.fullName} days={nextBanDays} />
+      <BanSheet open={sheet === 'banForLife'} onClose={close} memberId={member.id} name={member.fullName} days={null} />
+      <UnbanSheet open={sheet === 'unban'} onClose={close} memberId={member.id} name={member.fullName} />
       <ReviewSheet target={review} onClose={() => setReview(null)} />
     </>
   );
@@ -273,6 +332,81 @@ function StatusSheet({
         {update.error && <ErrorState error={update.error} />}
         <Button variant={danger ? 'danger' : 'primary'} loading={update.isPending} onClick={() => update.mutate(undefined)}>
           {confirm}
+        </Button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** `days`: a ban of that length; null: for life. */
+function BanSheet({
+  open,
+  onClose,
+  memberId,
+  name,
+  days,
+}: {
+  open: boolean;
+  onClose: () => void;
+  memberId: string;
+  name: string;
+  days: number | null;
+}) {
+  const [reason, setReason] = useState('');
+  const ban = useMemberMutation(
+    memberId,
+    () => api.admin.ban(memberId, { permanent: days === null, reason: reason.trim() || undefined }),
+    days === null ? t('Banned for life') : t('Banned for {days} days', { days }),
+    () => {
+      setReason('');
+      onClose();
+    },
+  );
+  return (
+    <Sheet open={open} onClose={onClose} title={days === null ? t('Ban for life?') : t('Ban for {days} days?', { days })}>
+      <div className={s.sheetStack}>
+        <p className={s.text}>
+          {days === null
+            ? t(
+                '{name} is signed out everywhere and can no longer sign in. No new account can be created from the phones they used.',
+                { name },
+              )
+            : t('{name} loses the chat, the map and meetups for {days} days, and keeps their pass and payments. The ban ends by itself.', {
+                name,
+                days,
+              })}
+        </p>
+        <FormList>
+          <FormRow label={t('Reason')} htmlFor="ban-reason">
+            <Input
+              id="ban-reason"
+              placeholder={t('Shown to the member')}
+              value={reason}
+              maxLength={300}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </FormRow>
+        </FormList>
+        {ban.error && <ErrorState error={ban.error} />}
+        <Button variant="danger" loading={ban.isPending} onClick={() => ban.mutate(undefined)}>
+          {days === null ? t('Ban for life') : t('Ban for {days} days', { days })}
+        </Button>
+      </div>
+    </Sheet>
+  );
+}
+
+function UnbanSheet({ open, onClose, memberId, name }: { open: boolean; onClose: () => void; memberId: string; name: string }) {
+  const unban = useMemberMutation(memberId, () => api.admin.unban(memberId), t('Ban lifted'), onClose);
+  return (
+    <Sheet open={open} onClose={onClose} title={t('Lift the ban?')}>
+      <div className={s.sheetStack}>
+        <p className={s.text}>
+          {t('{name} gets the app back now. A ban lifted early does not count for the next one.', { name })}
+        </p>
+        {unban.error && <ErrorState error={unban.error} />}
+        <Button loading={unban.isPending} onClick={() => unban.mutate(undefined)}>
+          {t('Lift the ban')}
         </Button>
       </div>
     </Sheet>

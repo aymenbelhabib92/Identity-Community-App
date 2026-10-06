@@ -1,0 +1,62 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.stack > button {
+  width: 100%;
+}
+
+.category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.category svg {
+  width: 15px;
+  height: 15px;
+}
+
+.text {
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-2);
+  white-space: pre-line;
+}
+
+.spot {
+  background: rgba(191, 90, 242, 0.18);
+  color: var(--purple);
+}
+
+.garage {
+  background: var(--tint-orange);
+  color: var(--orange-text);
+}
+
+.partner {
+  background: var(--tint-green);
+  color: var(--green-text);
+}
+
+.wash {
+  background: rgba(50, 173, 230, 0.18);
+  color: #32ade6;
+}
+
+.other {
+  background: var(--tint-gray);
+  color: var(--gray-text);
+}
+
+.red {
+  background: var(--tint-red);
+  color: var(--red-text);
+}

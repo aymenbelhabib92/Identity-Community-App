@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { users, type UserRow } from '../db/schema';
 import { AppError, forbidden, unauthorized } from '../errors';
+import { deviceIdOf, recordDevice } from '../services/moderation';
 import { stateOf } from '../services/users';
 import type { AccessTokenPayload, PassTokenPayload, Viewer } from '../types';
 
@@ -18,7 +19,7 @@ export async function buildViewer(app: FastifyInstance, user: UserRow, lang: Lan
   const settings = await app.clubSettings.get();
   const now = app.clock.now();
   const today = todayIn(app.config.timezone, now);
-  return { id: user.id, user, role: user.role, ...stateOf(user, settings, today), settings, today, now, lang };
+  return { id: user.id, user, role: user.role, ...stateOf(user, settings, today, now), settings, today, now, lang };
 }
 
 /** onRequest hook: resolves the bearer token to `request.viewer`. */
@@ -33,14 +34,16 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
   if (payload.typ !== 'access') throw unauthorized();
 
   const [user] = await app.db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
-  if (!user || user.tokenVersion !== payload.tv) {
+  if (!user || user.tokenVersion !== payload.tv || user.bannedForever) {
     throw unauthorized('Your session has ended. Please sign in again.');
   }
 
-  // Presence: other members see who used the app in the last few minutes.
+  // Presence: other members see who used the app in the last few minutes. The
+  // device is noted at the same pace (see services/moderation.ts).
   const now = app.clock.now();
   if (!user.lastSeenAt || now.getTime() - user.lastSeenAt.getTime() >= LAST_SEEN_STEP_MS) {
     await app.db.update(users).set({ lastSeenAt: now, updatedAt: user.updatedAt }).where(eq(users.id, user.id));
+    await recordDevice(app.db, user.id, deviceIdOf(request), now);
     user.lastSeenAt = now;
   }
   request.viewer = await buildViewer(app, user, request.lang);

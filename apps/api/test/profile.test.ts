@@ -1,4 +1,4 @@
-import { CAR_PHOTOS_MAX, type MapMember, type NotificationList, type User } from '@identity/shared';
+import { CAR_PHOTOS_MAX, type MapMember, type MemberProfile, type NotificationList, type User } from '@identity/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { activeMember, adminToken, bearer, createTestApp, multipart, PNG, register, type TestContext } from './helpers';
 
@@ -155,5 +155,42 @@ describe('language', () => {
 
     const membership = (await get(yasmine.token, '/membership', french)).json<{ payments: { label: string }[] }>();
     expect(membership.payments[0]!.label).toBe('Cotisation T4 2026');
+  });
+});
+
+describe('bio, Instagram and cover photo', () => {
+  const patchMe = (token: string, payload: object) =>
+    t.app.inject({ method: 'PATCH', url: '/api/v1/me', headers: bearer(token), payload });
+
+  it('a bio and an Instagram name, read from whatever members paste', async () => {
+    const res = await patchMe(karim.token, { bio: '  Cupra Leon, Sunday drives.  ', instagram: 'https://www.instagram.com/karim.cupra/?hl=fr' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<User>()).toMatchObject({ bio: 'Cupra Leon, Sunday drives.', instagram: 'karim.cupra' });
+
+    expect((await patchMe(karim.token, { instagram: 'not a name' })).statusCode).toBe(400);
+    expect((await patchMe(karim.token, { bio: 'x'.repeat(151) })).statusCode).toBe(400);
+  });
+
+  it('a cover photo, replaced or removed like the profile photo, shown to every account', async () => {
+    const first = (await upload(karim.token, 'PUT', '/me/cover')).json<User>();
+    expect(first.cover).toEqual(expect.any(String));
+    const second = (await upload(karim.token, 'PUT', '/me/cover')).json<User>();
+    expect(second.cover).not.toBe(first.cover);
+    expect((await get(yasmine.token, `/photos/${first.cover}`)).statusCode).toBe(404);
+    const pending = await register(t.app, 'Pending Cover Viewer');
+    expect((await get(pending.token, `/photos/${second.cover}`)).statusCode).toBe(200);
+
+    expect((await del(karim.token, '/me/cover')).json<User>().cover).toBeNull();
+  });
+
+  it('what other members see on the profile, never the phone', async () => {
+    await patchMe(karim.token, { bio: 'Cupra Leon, Sunday drives.', instagram: '@karim.cupra' });
+    const cover = (await upload(karim.token, 'PUT', '/me/cover')).json<User>().cover;
+    const profile = (await get(yasmine.token, `/members/${karim.id}`)).json<MemberProfile>();
+    expect(profile).toMatchObject({ bio: 'Cupra Leon, Sunday drives.', instagram: 'karim.cupra', cover });
+    expect(profile).not.toHaveProperty('phone');
+
+    // Empty values remove them.
+    expect((await patchMe(karim.token, { bio: '', instagram: '' })).json<User>()).toMatchObject({ bio: null, instagram: null });
   });
 });

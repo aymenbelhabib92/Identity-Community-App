@@ -1,9 +1,11 @@
 import {
+  BIO_MAX_LENGTH,
   CHAT_NOTIFICATION_MODES,
   CHAT_PUSH_INTERVAL_MINUTES,
   formatBadgeNumber,
   formatIsoDate,
   formatPhone,
+  instagramUrl,
   LANGUAGE_NAMES,
   LANGUAGES,
   t,
@@ -22,6 +24,7 @@ import {
   Check,
   CreditCard,
   Download,
+  Image as ImageIcon,
   KeyRound,
   Languages,
   LogOut,
@@ -34,8 +37,11 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
+import { Shards } from '../../components/brand/Shards';
+import { InstagramIcon } from '../../components/InstagramIcon';
 import { InstallHelpSheet } from '../../components/install/InstallHelpSheet';
-import { StatePill } from '../../components/StatePill';
+import { Photo } from '../../components/photos/Photos';
+import { RolePill } from '../../components/RolePill';
 import {
   Avatar,
   BackLink,
@@ -51,6 +57,7 @@ import {
   SectionFooter,
   SectionHeader,
   Sheet,
+  TextArea,
   useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -74,7 +81,7 @@ const CHAT_MODE_LABELS: Record<ChatNotificationMode, string> = {
 /** Shorter, for the row of the account screen. */
 const CHAT_MODE_VALUES: Record<ChatNotificationMode, string> = { all: 'All', mentions: 'Mentions', off: 'Off' };
 
-type SheetName = 'photo' | 'edit' | 'password' | 'language' | 'theme' | 'notifications' | 'chat' | 'install' | null;
+type SheetName = 'photo' | 'cover' | 'edit' | 'password' | 'language' | 'theme' | 'notifications' | 'chat' | 'install' | null;
 
 function pushLabel(state: PushState): string {
   switch (state) {
@@ -126,15 +133,27 @@ export default function Profile() {
     <Screen>
       <BackLink to="/home">{t('Home')}</BackLink>
       <div className={s.profileHead}>
+        <button type="button" className={s.coverButton} onClick={() => setSheet('cover')} aria-label={t('Change my cover photo')}>
+          <CoverImage cover={user.cover} />
+          <span className={s.coverBadge} aria-hidden>
+            <ImageIcon strokeWidth={2.2} />
+          </span>
+        </button>
         <button type="button" className={s.avatarButton} onClick={() => setSheet('photo')} aria-label={t('Change my profile photo')}>
-          <Avatar name={user.fullName} photo={user.avatar} size={96} state={user.state} online />
+          <Avatar name={user.fullName} photo={user.avatar} size={96} online className={s.profileAvatar} />
           <span className={s.avatarBadge} aria-hidden>
             <Camera strokeWidth={2.2} />
           </span>
         </button>
         <p className={s.profileName}>{user.fullName}</p>
         <p className={s.profileMeta}>{formatPhone(user.phone)}</p>
-        <StatePill state={user.state} />
+        <RolePill role={user.role} member={user.approvedAt !== null} />
+        {user.bio && <p className={s.profileBio}>{user.bio}</p>}
+        {user.instagram && (
+          <a className={s.instagram} href={instagramUrl(user.instagram)} target="_blank" rel="noopener noreferrer">
+            <InstagramIcon />@{user.instagram}
+          </a>
+        )}
       </div>
 
       <List>
@@ -225,6 +244,7 @@ export default function Profile() {
       <p className={s.version}>Identity Car Community · v{__APP_VERSION__}</p>
 
       <PhotoSheet open={sheet === 'photo'} onClose={close} user={user} />
+      <CoverSheet open={sheet === 'cover'} onClose={close} user={user} />
       <EditProfileSheet open={sheet === 'edit'} onClose={close} />
       <PasswordSheet open={sheet === 'password'} onClose={close} />
       <LanguageSheet open={sheet === 'language'} onClose={close} user={user} />
@@ -284,6 +304,64 @@ function PhotoSheet({ open, onClose, user }: { open: boolean; onClose: () => voi
           </Button>
         )}
         <SectionFooter>{t('Your photo is shown to the members of the club. It is cropped to a square.')}</SectionFooter>
+      </div>
+    </Sheet>
+  );
+}
+
+/** The cover photo, or the club's texture until the member chooses one. */
+function CoverImage({ cover }: { cover: string | null }) {
+  return cover ? <Photo id={cover} className={s.coverImage} /> : <Shards className={s.coverImage} />;
+}
+
+/** Choose, replace or remove the cover photo (wide, at the top of the profile and of Home). */
+function CoverSheet({ open, onClose, user }: { open: boolean; onClose: () => void; user: User }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const input = useRef<HTMLInputElement>(null);
+
+  const done = (updated: User, message: string) => {
+    queryClient.setQueryData(keys.me, updated);
+    toast(message, 'success');
+    onClose();
+  };
+  const upload = useMutation({
+    mutationFn: async (file: File) => api.me.setCover(photoForm(await preparePhoto(file, { size: 1600 }))),
+    onSuccess: (updated) => done(updated, t('Cover photo updated')),
+  });
+  const remove = useMutation({
+    mutationFn: api.me.removeCover,
+    onSuccess: (updated) => done(updated, t('Cover photo removed')),
+  });
+  const error = upload.error ?? remove.error;
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('Cover photo')}>
+      <div className={s.form}>
+        <div className={s.coverPreview}>
+          <CoverImage cover={user.cover} />
+        </div>
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (file) upload.mutate(file);
+          }}
+        />
+        {error && <ErrorState error={error} />}
+        <Button icon={<ImageIcon aria-hidden />} loading={upload.isPending} onClick={() => input.current?.click()}>
+          {user.cover ? t('Choose another photo') : t('Choose a photo')}
+        </Button>
+        {user.cover && (
+          <Button variant="danger" icon={<Trash2 aria-hidden />} loading={remove.isPending} onClick={() => remove.mutate()}>
+            {t('Remove the photo')}
+          </Button>
+        )}
+        <SectionFooter>{t('A wide photo — your car, a meetup. It appears at the top of your profile and of your Home screen.')}</SectionFooter>
       </div>
     </Sheet>
   );
@@ -469,9 +547,11 @@ function EditProfileSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const queryClient = useQueryClient();
   const toast = useToast();
   const [fullName, setFullName] = useState(user.fullName);
+  const [bio, setBio] = useState(user.bio ?? '');
+  const [instagram, setInstagram] = useState(user.instagram ? `@${user.instagram}` : '');
 
   const save = useMutation({
-    mutationFn: () => api.me.update({ fullName }),
+    mutationFn: () => api.me.update({ fullName, bio: bio.trim() || null, instagram: instagram.trim() || null }),
     onSuccess: (updated) => {
       queryClient.setQueryData(keys.me, updated);
       toast(t('Profile updated'), 'success');
@@ -493,8 +573,33 @@ function EditProfileSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <FormRow label={t('Full name')} htmlFor="profile-name" invalid={Boolean(errors.fullName)}>
               <Input id="profile-name" value={fullName} onChange={(event) => setFullName(event.target.value)} />
             </FormRow>
+            <FormRow label={t('Instagram')} htmlFor="profile-instagram" invalid={Boolean(errors.instagram)}>
+              <Input
+                id="profile-instagram"
+                value={instagram}
+                placeholder={t('@name or link')}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(event) => setInstagram(event.target.value)}
+              />
+            </FormRow>
           </FormList>
-          <FieldErrors errors={[errors.fullName]} />
+          <FieldErrors errors={[errors.fullName, errors.instagram]} />
+        </div>
+        <div>
+          <TextArea
+            value={bio}
+            maxLength={BIO_MAX_LENGTH}
+            placeholder={t('A few words about you and your car')}
+            aria-label={t('Bio')}
+            className={errors.bio ? s.invalidArea : undefined}
+            onChange={(event) => setBio(event.target.value)}
+          />
+          <p className={s.counter}>
+            {bio.length} / {BIO_MAX_LENGTH}
+          </p>
+          <FieldErrors errors={[errors.bio]} />
         </div>
         {save.error && Object.keys(errors).length === 0 && <ErrorState error={save.error} />}
         <Button type="submit" loading={save.isPending}>

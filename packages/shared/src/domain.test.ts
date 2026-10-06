@@ -3,9 +3,9 @@ import { addDays, formatDayDateTime, formatIsoDate, formatRelative, todayIn } fr
 import { DEFAULT_CLUB_RULES } from './defaults';
 import { approximateLocation, distanceMeters, LOCATION_PRECISION_METERS } from './geo';
 import { pickLanguage, translate, translatePlural } from './i18n';
-import { hasMemberAccess, membershipState } from './membership';
+import { banDays, hasMemberAccess, membershipState } from './membership';
 import { formatMoney, parseMoney } from './money';
-import { formatPhone, initials, normalizePhone, shortName } from './people';
+import { formatPhone, initials, normalizeInstagram, normalizePhone, shortName } from './people';
 import { addPeriods, nextDuesPeriodStart, periodEnd, periodLabel, periodStartOf } from './periods';
 import { can, isStaff } from './roles';
 import { DEFAULT_CLUB_SETTINGS, resolveClubSettings } from './settings';
@@ -65,6 +65,18 @@ describe('membership state', () => {
     expect(hasMemberAccess('expired', 'organizer')).toBe(true);
     expect(hasMemberAccess('suspended', 'admin')).toBe(false);
   });
+
+  it('is banned while a ban runs, whatever the dues, and bans close every door', () => {
+    expect(membershipState({ ...base, paidUntil: '2026-12-31', banned: true })).toBe('banned');
+    expect(membershipState({ ...base, status: 'pending', paidUntil: null, banned: true })).toBe('banned');
+    expect(membershipState({ ...base, status: 'rejected', paidUntil: null, banned: true })).toBe('rejected');
+    expect(hasMemberAccess('banned', 'member')).toBe(false);
+    expect(hasMemberAccess('banned', 'admin')).toBe(false);
+  });
+
+  it('lengthens bans: 3, 7, then 15 days', () => {
+    expect([1, 2, 3, 4, 9].map(banDays)).toEqual([3, 7, 15, 15, 15]);
+  });
 });
 
 describe('roles', () => {
@@ -79,6 +91,14 @@ describe('roles', () => {
 });
 
 describe('people', () => {
+  it('reads an Instagram name from what members paste', () => {
+    for (const input of ['karim.cupra', '@karim.cupra', ' https://www.instagram.com/karim.cupra/?hl=fr ', 'instagram.com/karim.cupra']) {
+      expect(normalizeInstagram(input)).toBe('karim.cupra');
+    }
+    expect(normalizeInstagram('karim cupra')).toBeNull();
+    expect(normalizeInstagram('https://facebook.com/karim')).toBeNull();
+  });
+
   it('normalises Tunisian and international numbers', () => {
     expect(normalizePhone('20 123 456')).toBe('+21620123456');
     expect(normalizePhone('+216 20-123-456')).toBe('+21620123456');

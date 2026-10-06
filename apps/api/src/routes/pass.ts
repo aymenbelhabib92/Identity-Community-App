@@ -17,6 +17,7 @@ const REFUSAL: Partial<Record<MembershipState, string>> = {
   pending: 'Membership not confirmed yet.',
   expired: 'Dues expired.',
   suspended: 'Membership suspended.',
+  banned: 'Member banned.',
   rejected: 'Not a member.',
 };
 
@@ -79,7 +80,7 @@ export const passRoutes: FastifyPluginAsyncZod = async (app) => {
       const user = payload.typ === 'pass' ? await findUser(app.db, payload.sub) : undefined;
       if (!user) return { valid: false, reason: tr('This is not a valid Identity pass.'), member: null };
 
-      const { state, hasAccess } = stateOf(user, viewer.settings, viewer.today);
+      const { state, hasAccess } = stateOf(user, viewer.settings, viewer.today, viewer.now);
       const warning = state === 'due' ? tr('Dues are due: remind them to pay.') : null;
       return {
         valid: hasAccess,

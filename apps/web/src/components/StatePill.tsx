@@ -1,5 +1,5 @@
 import type { MembershipState } from '@identity/shared';
-import { Check, CircleAlert, Clock, X } from 'lucide-react';
+import { Ban, Check, CircleAlert, Clock, X } from 'lucide-react';
 import { STATE_TONE, stateLabel } from '../lib/format';
 import { Pill } from './ui';
 
@@ -9,6 +9,7 @@ const ICONS: Record<MembershipState, typeof Check> = {
   due: Clock,
   expired: CircleAlert,
   suspended: CircleAlert,
+  banned: Ban,
   rejected: X,
 };
 

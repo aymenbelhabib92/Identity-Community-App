@@ -69,7 +69,7 @@ function Verdict({ result }: { result: PassVerification }) {
       <Card>
         <div className={s.verdict}>
           {member?.avatar ? (
-            <Avatar name={member.fullName} photo={member.avatar} size={96} state={member.state} />
+            <Avatar name={member.fullName} photo={member.avatar} size={96} />
           ) : (
             <span className={cx(s.verdictIcon, result.valid ? s.valid : s.invalid)}>
               {result.valid ? <Check aria-hidden strokeWidth={3} /> : <X aria-hidden strokeWidth={3} />}

@@ -25,6 +25,8 @@ export const PERMISSIONS = {
   'pass:verify': ['organizer', 'treasurer', 'admin'],
   /** Delete anyone's chat messages (members can always delete their own). */
   'chat:moderate': ['admin'],
+  /** Club places and red zones on the map. */
+  'places:manage': ['admin'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

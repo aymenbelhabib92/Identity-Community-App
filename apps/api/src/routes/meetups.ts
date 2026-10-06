@@ -118,7 +118,7 @@ export const meetupRoutes: FastifyPluginAsyncZod = async (app) => {
         .returning();
 
       const meetup = row!;
-      const recipients = await audienceIds(app.db, viewer.settings, viewer.today, audienceFor(meetup.visibility), viewer.id);
+      const recipients = await audienceIds(app.db, viewer, audienceFor(meetup.visibility), viewer.id);
       await notify(app, recipients, (tr, lang) => ({
         kind: 'meetup',
         title: tr('New meetup: {title}', { title: meetup.title }),

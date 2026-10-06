@@ -6,6 +6,7 @@ import {
   locationSharingBodySchema,
   locationUpdateSchema,
   myLocationSchema,
+  normalizeInstagram,
   okResponseSchema,
   updateMeBodySchema,
   userSchema,
@@ -19,14 +20,18 @@ import { AppError, conflict, fieldError } from '../errors';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { requireAccess, signAccessToken } from '../plugins/auth';
 import { findUser, toUserDto } from '../services/users';
+import { loadRedZones, redZoneAt } from '../services/zones';
 
 async function myLocation(db: Db, userId: string, sharing: boolean): Promise<MyLocation> {
   const [row] = await db.select().from(memberLocations).where(eq(memberLocations.userId, userId)).limit(1);
+  // A red zone drawn around the stored position since: it is not shown (GET /map/members).
+  const zone = row ? redZoneAt(await loadRedZones(db), row) : undefined;
   return {
     sharing,
     lat: row?.lat ?? null,
     lng: row?.lng ?? null,
     updatedAt: row?.updatedAt.toISOString() ?? null,
+    redZone: zone ? { id: zone.id, name: zone.name } : null,
   };
 }
 
@@ -43,12 +48,19 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
     { schema: { tags: ['me'], summary: 'Update profile', body: updateMeBodySchema, response: { 200: userSchema } } },
     async (request) => {
       const { viewer } = request;
-      const { fullName, car, language, chatNotifications } = request.body;
+      const { fullName, car, bio, language, chatNotifications } = request.body;
+      let instagram: string | null | undefined = request.body.instagram;
+      if (instagram) {
+        instagram = normalizeInstagram(instagram);
+        if (!instagram) throw fieldError('instagram', 'Enter an Instagram name or the link to the profile.');
+      }
       const [user] = await app.db
         .update(users)
         .set({
           ...(fullName !== undefined && { fullName }),
           ...(car !== undefined && { car: car || null }),
+          ...(bio !== undefined && { bio: bio || null }),
+          ...(instagram !== undefined && { instagram: instagram || null }),
           ...(language !== undefined && { language }),
           ...(chatNotifications !== undefined && { chatNotifications }),
         })
@@ -145,7 +157,9 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['map'],
         summary: 'Update my position',
-        description: 'The position is snapped to a ~100 m grid before it is stored; the exact point is never kept.',
+        description:
+          'The position is snapped to a ~100 m grid before it is stored; the exact point is never kept. ' +
+          'Inside a red zone nothing is stored and the position is hidden (`redZone`) until the member leaves it.',
         body: locationUpdateSchema,
         response: { 200: myLocationSchema },
       },
@@ -154,6 +168,13 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       const { viewer } = request;
       const user = await findUser(app.db, viewer.id);
       if (!user?.locationSharing) throw conflict('SHARING_OFF', 'Turn on location sharing first.');
+
+      const zone = redZoneAt(await loadRedZones(app.db), request.body);
+      if (zone) {
+        await app.db.delete(memberLocations).where(eq(memberLocations.userId, viewer.id));
+        return { sharing: true, lat: null, lng: null, updatedAt: null, redZone: { id: zone.id, name: zone.name } };
+      }
+
       const point = approximateLocation(request.body);
       const now = app.clock.now();
       await app.db

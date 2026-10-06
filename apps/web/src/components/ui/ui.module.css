@@ -254,21 +254,6 @@
   object-fit: cover;
 }
 
-/* Membership state: a ring around the photo. */
-.ring {
-  outline: 2px solid var(--gray);
-  outline-offset: 2px;
-}
-.ringGreen {
-  outline-color: var(--green);
-}
-.ringOrange {
-  outline-color: var(--orange);
-}
-.ringRed {
-  outline-color: var(--red);
-}
-
 /* Online: a green dot at the bottom right. */
 .online {
   position: absolute;
@@ -466,6 +451,10 @@
 .toneGray {
   background: var(--tint-gray);
   color: var(--gray-text);
+}
+.tonePurple {
+  background: rgba(191, 90, 242, 0.18);
+  color: var(--purple);
 }
 
 .textGreen {

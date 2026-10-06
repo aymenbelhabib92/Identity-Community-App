@@ -9,6 +9,7 @@ import {
   ANNOUNCEMENT_AUDIENCES,
   CHAT_MESSAGE_MAX_LENGTH,
   CHAT_NOTIFICATION_MODES,
+  CLUB_PLACE_CATEGORIES,
   LOCATION_STATUSES,
   MEETUP_STATUSES,
   MEETUP_VISIBILITIES,
@@ -16,9 +17,11 @@ import {
   PAYMENT_KINDS,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  RED_ZONE_RADIUS,
 } from './constants';
 import { LANGUAGES } from './i18n';
 import { MEMBER_STATUSES, MEMBERSHIP_STATES } from './membership';
+import { BIO_MAX_LENGTH } from './people';
 import { PERMISSIONS, ROLES, type Permission } from './roles';
 
 // ─── Common ──────────────────────────────────────────────────────────────────
@@ -64,13 +67,27 @@ export const userSchema = z.object({
   phone: z.string(),
   car: z.string().nullable(),
   avatar: photoRef,
+  /** Wide photo at the top of the profile (and of Home). */
+  cover: photoRef,
   carPhotos: carPhotoRefs,
+  /** Short presentation (BIO_MAX_LENGTH). */
+  bio: z.string().nullable(),
+  /** Instagram name, without "@". */
+  instagram: z.string().nullable(),
   /** Preferred language; null until the member's app has set it. */
   language: languageSchema.nullable(),
   /** Used the app within the last few minutes (see ONLINE_WINDOW_MINUTES). */
   online: z.boolean(),
   /** Push notifications for the club chat (see CHAT_NOTIFICATION_MODES). */
   chatNotifications: z.enum(CHAT_NOTIFICATION_MODES),
+  /** The ban running now (chat, map and meetups closed until `until`), or null. */
+  ban: z
+    .object({
+      /** null: banned for life. */
+      until: timestampSchema.nullable(),
+      reason: z.string().nullable(),
+    })
+    .nullable(),
   role: roleSchema,
   status: memberStatusSchema,
   state: membershipStateSchema,
@@ -95,8 +112,12 @@ export const memberRefSchema = z.object({
 });
 export type MemberRef = z.infer<typeof memberRefSchema>;
 
-/** A member's profile as other members see it (from the chat): no phone, no membership state. */
+/** A member's profile as other members see it: no phone, no membership state. */
 export const memberProfileSchema = memberRefSchema.extend({
+  cover: photoRef,
+  bio: z.string().nullable(),
+  /** Instagram name, without "@". */
+  instagram: z.string().nullable(),
   car: z.string().nullable(),
   carPhotos: carPhotoRefs,
   /** When the membership was first confirmed. */
@@ -129,6 +150,10 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 export const updateMeBodySchema = z.object({
   fullName: fullNameInput.optional(),
   car: carInput.nullable().optional(),
+  /** Empty or null removes it. */
+  bio: z.string().trim().max(BIO_MAX_LENGTH, 'Keep it short (150 characters max)').nullable().optional(),
+  /** An Instagram name ("@name" or "name") or a link to the profile; empty or null removes it. */
+  instagram: z.string().trim().max(200).nullable().optional(),
   language: languageSchema.optional(),
   chatNotifications: z.enum(CHAT_NOTIFICATION_MODES).optional(),
 });
@@ -189,6 +214,14 @@ export const membershipSchema = z.object({
 });
 export type Membership = z.infer<typeof membershipSchema>;
 
+/** A member's file for the admins: their membership, plus bans so far and devices used. */
+export const adminMembershipSchema = membershipSchema.extend({
+  /** Lifted bans excepted: the next one lasts banDays(bans + 1). */
+  bans: z.number().int(),
+  devices: z.number().int(),
+});
+export type AdminMembership = z.infer<typeof adminMembershipSchema>;
+
 /** Text fields of the multipart payment form (the proof is the `file` part). */
 export const paymentFormSchema = z.object({
   kind: z.enum(PAYMENT_KINDS),
@@ -239,9 +272,23 @@ export const adminMembersQuerySchema = z.object({
 });
 export type AdminMembersQuery = Partial<z.infer<typeof adminMembersQuerySchema>>;
 
-export const adminMemberSchema = userSchema.extend({ pendingPayments: z.number().int() });
+export const adminMemberSchema = userSchema.extend({
+  pendingPayments: z.number().int(),
+  /** Bans so far (lifted ones excepted): the next one lasts banDays(bans + 1). */
+  bans: z.number().int(),
+  /** Devices the member used the app on (see X-Device-Id). */
+  devices: z.number().int(),
+});
 export type AdminMember = z.infer<typeof adminMemberSchema>;
 export const adminMemberListSchema = items(adminMemberSchema);
+
+export const banBodySchema = z.object({
+  /** For life: signed out everywhere, sign-in refused, their devices blocked. */
+  permanent: z.boolean().default(false),
+  /** Shown to the member. */
+  reason: z.string().trim().max(300).optional(),
+});
+export type BanBody = z.input<typeof banBodySchema>;
 
 export const updateMemberBodySchema = z
   .object({
@@ -264,6 +311,7 @@ export const adminOverviewSchema = z.object({
   dueMembers: z.number().int(),
   expiredMembers: z.number().int(),
   suspendedMembers: z.number().int(),
+  bannedMembers: z.number().int(),
   pendingPayments: z.number().int(),
 });
 export type AdminOverview = z.infer<typeof adminOverviewSchema>;
@@ -501,8 +549,60 @@ export const myLocationSchema = z.object({
   lat: z.number().nullable(),
   lng: z.number().nullable(),
   updatedAt: timestampSchema.nullable(),
+  /** The member is in this red zone: their position is hidden until they leave it. */
+  redZone: z.object({ id: idSchema, name: z.string() }).nullable(),
 });
 export type MyLocation = z.infer<typeof myLocationSchema>;
+
+// ─── Club places & red zones ─────────────────────────────────────────────────
+
+const latSchema = z.number().min(-90).max(90);
+const lngSchema = z.number().min(-180).max(180);
+
+/** A place the club shows on the map: meeting spot, partner garage… */
+export const clubPlaceSchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  category: z.enum(CLUB_PLACE_CATEGORIES),
+  description: z.string().nullable(),
+  lat: z.number(),
+  lng: z.number(),
+});
+export type ClubPlace = z.infer<typeof clubPlaceSchema>;
+export const clubPlaceListSchema = items(clubPlaceSchema);
+
+export const clubPlaceBodySchema = z.object({
+  name: z.string().trim().min(2, 'Enter a name').max(80),
+  category: z.enum(CLUB_PLACE_CATEGORIES),
+  description: z.string().trim().max(500).nullable().optional(),
+  lat: latSchema,
+  lng: lngSchema,
+});
+export type ClubPlaceBody = z.infer<typeof clubPlaceBodySchema>;
+export const clubPlaceUpdateSchema = clubPlaceBodySchema.partial();
+export type ClubPlaceUpdate = z.infer<typeof clubPlaceUpdateSchema>;
+
+/** A circle where members' positions are never shown; visible to every member. */
+export const redZoneSchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  /** Metres. */
+  radius: z.number().int(),
+});
+export type RedZone = z.infer<typeof redZoneSchema>;
+export const redZoneListSchema = items(redZoneSchema);
+
+export const redZoneBodySchema = z.object({
+  name: z.string().trim().min(2, 'Enter a name').max(80),
+  lat: latSchema,
+  lng: lngSchema,
+  radius: z.number().int().min(RED_ZONE_RADIUS.min).max(RED_ZONE_RADIUS.max),
+});
+export type RedZoneBody = z.infer<typeof redZoneBodySchema>;
+export const redZoneUpdateSchema = redZoneBodySchema.partial();
+export type RedZoneUpdate = z.infer<typeof redZoneUpdateSchema>;
 
 export const mapMemberSchema = z.object({
   id: idSchema,

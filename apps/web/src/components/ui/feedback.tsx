@@ -50,6 +50,7 @@ const NOTICE_TONE: Record<Tone, string> = {
   orange: s.toneOrange!,
   green: s.toneGreen!,
   gray: s.toneGray!,
+  purple: s.tonePurple!,
 };
 
 export function Notice({ tone = 'blue', icon, children }: { tone?: Tone; icon?: ReactNode; children: ReactNode }) {

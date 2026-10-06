@@ -5,6 +5,7 @@
  */
 import type {
   AdminMember,
+  AdminMembership,
   AdminMembersQuery,
   AdminOverview,
   AdminPayment,
@@ -13,6 +14,7 @@ import type {
   AnnouncementCreateBody,
   Attendee,
   AuthResponse,
+  BanBody,
   ChangePasswordBody,
   ChatListQuery,
   ChatMessage,
@@ -20,6 +22,9 @@ import type {
   ChatPostBody,
   ChatReader,
   ChatUnread,
+  ClubPlace,
+  ClubPlaceBody,
+  ClubPlaceUpdate,
   ErrorResponse,
   LocationUpdateBody,
   LoginBody,
@@ -43,6 +48,9 @@ import type {
   PushSubscriptionBody,
   PushTestResult,
   RecordPaymentBody,
+  RedZone,
+  RedZoneBody,
+  RedZoneUpdate,
   RegisterBody,
   ReviewPaymentBody,
   UpdateMeBody,
@@ -84,6 +92,11 @@ export interface ApiClientOptions {
   getToken?: () => string | null | undefined;
   /** Sent as Accept-Language: error messages and labels come back in this language. */
   getLanguage?: () => string | null | undefined;
+  /**
+   * An identifier of this installation of the app, sent as X-Device-Id: the
+   * devices of a member banned for life cannot sign in or register again.
+   */
+  getDeviceId?: () => string | null | undefined;
   /** Called when an authenticated request is rejected (expired or revoked token). */
   onUnauthorized?: () => void;
   fetch?: typeof fetch;
@@ -119,6 +132,8 @@ export function createApiClient(options: ApiClientOptions) {
     if (token) headers.Authorization = `Bearer ${token}`;
     const language = options.getLanguage?.();
     if (language) headers['Accept-Language'] = language;
+    const device = options.getDeviceId?.();
+    if (device) headers['X-Device-Id'] = device;
 
     let body: BodyInit | undefined;
     if (init.form) {
@@ -179,6 +194,9 @@ export function createApiClient(options: ApiClientOptions) {
       /** Multipart form with a `file` part (JPG, PNG or WEBP). Replaces the current photo. */
       setAvatar: (form: FormData) => json<User>('PUT', '/me/avatar', { form }),
       removeAvatar: () => json<User>('DELETE', '/me/avatar'),
+      /** Multipart form with a `file` part: the wide photo at the top of the profile. */
+      setCover: (form: FormData) => json<User>('PUT', '/me/cover', { form }),
+      removeCover: () => json<User>('DELETE', '/me/cover'),
       /** Multipart form with a `file` part. Up to CAR_PHOTOS_MAX photos. */
       addCarPhoto: (form: FormData) => json<User>('POST', '/me/car-photos', { form }),
       removeCarPhoto: (photoId: string) => json<User>('DELETE', `/me/car-photos/${id(photoId)}`),
@@ -263,6 +281,9 @@ export function createApiClient(options: ApiClientOptions) {
     map: {
       members: () => get<Items<MapMember>>('/map/members'),
       meetups: () => get<Items<MapMeetup>>('/map/meetups'),
+      places: () => get<Items<ClubPlace>>('/map/places'),
+      /** Where members' positions are never shown. */
+      zones: () => get<Items<RedZone>>('/map/zones'),
     },
 
     geo: {
@@ -280,13 +301,23 @@ export function createApiClient(options: ApiClientOptions) {
       reviewPayment: (paymentId: string, body: ReviewPaymentBody) =>
         json<AdminPayment>('POST', `/admin/payments/${id(paymentId)}/review`, { body }),
       members: (query?: AdminMembersQuery) => get<Items<AdminMember>>('/admin/members', query),
-      member: (memberId: string) => get<Membership>(`/admin/members/${id(memberId)}`),
+      member: (memberId: string) => get<AdminMembership>(`/admin/members/${id(memberId)}`),
       updateMember: (memberId: string, body: UpdateMemberBody) =>
         json<AdminMember>('PATCH', `/admin/members/${id(memberId)}`, { body }),
       recordPayment: (memberId: string, body: RecordPaymentBody) =>
         json<Payment>('POST', `/admin/members/${id(memberId)}/payments`, { body }),
       resetPassword: (memberId: string) =>
         json<PasswordReset>('POST', `/admin/members/${id(memberId)}/reset-password`),
+      /** 3, 7, then 15 days (see BAN_DAYS), or for life with `permanent`. */
+      ban: (memberId: string, body: BanBody) => json<AdminMember>('POST', `/admin/members/${id(memberId)}/ban`, { body }),
+      unban: (memberId: string) => json<AdminMember>('POST', `/admin/members/${id(memberId)}/unban`),
+      createPlace: (body: ClubPlaceBody) => json<ClubPlace>('POST', '/admin/places', { body }),
+      updatePlace: (placeId: string, body: ClubPlaceUpdate) =>
+        json<ClubPlace>('PATCH', `/admin/places/${id(placeId)}`, { body }),
+      removePlace: (placeId: string) => json<Ok>('DELETE', `/admin/places/${id(placeId)}`),
+      createZone: (body: RedZoneBody) => json<RedZone>('POST', '/admin/zones', { body }),
+      updateZone: (zoneId: string, body: RedZoneUpdate) => json<RedZone>('PATCH', `/admin/zones/${id(zoneId)}`, { body }),
+      removeZone: (zoneId: string) => json<Ok>('DELETE', `/admin/zones/${id(zoneId)}`),
       settings: () => get<ClubSettings>('/admin/settings'),
       updateSettings: (body: ClubSettingsUpdate) => json<ClubSettings>('PATCH', '/admin/settings', { body }),
     },

@@ -51,27 +51,28 @@ import {
 } from '../../lib/chat';
 import { cx } from '../../lib/cx';
 import { errorMessage } from '../../lib/errors';
+import { banSummary } from '../../lib/format';
 import s from './chat.module.css';
 
 /** The club chat: one public room for the members with access. */
 export default function Chat() {
   const user = useUser();
-  return user.hasAccess ? <ChatRoom user={user} /> : <LockedChat />;
+  return user.hasAccess ? <ChatRoom user={user} /> : <LockedChat ban={user.ban} />;
 }
 
-function LockedChat() {
+function LockedChat({ ban }: { ban: User['ban'] }) {
   return (
     <Screen className={s.screen}>
       <div className={s.wallpaper} aria-hidden />
       <LargeTitle>{t('Chat')}</LargeTitle>
       <Card padded>
         <div className={s.lockedHead}>
-          <IconTile color="gray" large>
+          <IconTile color={ban ? 'red' : 'gray'} large>
             <Lock />
           </IconTile>
           <div>
             <p className={s.lockedTitle}>{t('Club chat')}</p>
-            <p className={s.lockedSub}>{t('Opens once your membership is active')}</p>
+            <p className={s.lockedSub}>{ban ? banSummary(ban) : t('Opens once your membership is active')}</p>
           </div>
         </div>
         <p className={s.lockedText}>{t('Active members talk here: meetups, help with a car, photos and club news.')}</p>

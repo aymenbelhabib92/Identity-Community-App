@@ -150,6 +150,28 @@
   color: var(--orange);
 }
 
+/* In a red zone: sharing is paused (small red alert). */
+.redZoneAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--tint-red);
+  color: var(--red-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.redZoneAlert svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
 .shareFoot {
   display: flex;
   align-items: flex-start;

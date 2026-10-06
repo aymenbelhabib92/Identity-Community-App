@@ -13,6 +13,7 @@ import { users } from '../db/schema';
 import { AppError, fieldError, isUniqueViolation } from '../errors';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../lib/password';
 import { buildViewer, signAccessToken } from '../plugins/auth';
+import { deviceBlocked, deviceIdOf, recordDevice } from '../services/moderation';
 import { notify } from '../services/notifications';
 import { staffWith, toUserDto } from '../services/users';
 
@@ -42,6 +43,11 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       const { fullName, password, car } = request.body;
       const phone = normalizePhone(request.body.phone);
       if (!phone) throw fieldError('phone', 'Enter a valid phone number.');
+      // A banned member does not start over with another number on the same phone.
+      const device = deviceIdOf(request);
+      if (await deviceBlocked(app.db, device, app.clock.now(), 'register')) {
+        throw new AppError(403, 'DEVICE_BLOCKED', 'New accounts cannot be created from this device.');
+      }
 
       const [existing] = await app.db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1);
       if (existing) throw phoneTaken();
@@ -66,6 +72,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       }
       if (!user) throw new Error('Insert returned no row');
       const member = user;
+      await recordDevice(app.db, member.id, device, app.clock.now());
 
       await notify(app, await staffWith(app.db, 'payments:review'), (tr) => ({
         kind: 'membership',
@@ -103,6 +110,12 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!(await verifyPassword(request.body.password, user.passwordHash))) throw invalid;
 
       const now = app.clock.now();
+      if (user.bannedForever) throw new AppError(403, 'BANNED', 'This account is banned.');
+      const device = deviceIdOf(request);
+      if (await deviceBlocked(app.db, device, now, 'sign-in')) {
+        throw new AppError(403, 'DEVICE_BLOCKED', 'This device can no longer be used to sign in.');
+      }
+      await recordDevice(app.db, user.id, device, now);
       await app.db.update(users).set({ lastSeenAt: now, updatedAt: user.updatedAt }).where(eq(users.id, user.id));
       const viewer = await buildViewer(app, { ...user, lastSeenAt: now }, request.lang);
       return { token: signAccessToken(app, user), user: toUserDto(viewer.user, viewer) };
