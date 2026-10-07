@@ -158,7 +158,8 @@ function Form({ meetupId, initial }: { meetupId?: string; initial: FormState }) 
   const hasFieldErrors = Object.keys(errors).length > 0;
 
   const onPlaceFound = (place: Place) =>
-    setForm((f) => ({ ...f, locationName: f.locationName || place.name, address: place.address }));
+    // Club places have no street address: keep the one typed, if any.
+    setForm((f) => ({ ...f, locationName: f.locationName || place.name, address: place.address || f.address }));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();

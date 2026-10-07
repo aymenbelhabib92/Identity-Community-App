@@ -41,7 +41,9 @@ import { useUser } from '../../lib/auth';
 import { errorMessage } from '../../lib/errors';
 import { banSummary, roleLabel, timeAgo } from '../../lib/format';
 import { useDebounced } from '../../lib/hooks';
+import { cx } from '../../lib/cx';
 import { useLocationSharing } from '../../lib/location';
+import { clubPlaceSubtitle, matchClubPlaces } from '../../lib/places';
 import { usePhoto } from '../../lib/photos';
 import { useMapMeetups, useMapMembers, useMapPlaces, useMapZones } from '../../lib/queries';
 import s from './map-screen.module.css';
@@ -117,9 +119,14 @@ export default function MapScreen() {
       <div className={s.top}>
         <SearchPanel
           members={user.hasAccess ? memberList : []}
+          clubPlaces={places.data?.items ?? []}
           onMember={(member) => {
             flyTo(member);
             setSelected(member);
+          }}
+          onClubPlace={(place) => {
+            flyTo(place);
+            setClubPlace(place);
           }}
           onPlace={(place) => {
             setPlacePin(place);
@@ -301,11 +308,15 @@ function MeetupLayer({ meetups }: { meetups: MapMeetup[] }) {
 
 function SearchPanel({
   members,
+  clubPlaces,
   onMember,
+  onClubPlace,
   onPlace,
 }: {
   members: MapMember[];
+  clubPlaces: ClubPlace[];
   onMember: (member: MapMember) => void;
+  onClubPlace: (place: ClubPlace) => void;
   onPlace: (place: Place) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -321,6 +332,7 @@ function SearchPanel({
   });
 
   const matches = term ? members.filter((member) => member.fullName.toLowerCase().includes(term)).slice(0, 5) : [];
+  const clubMatches = matchClubPlaces(clubPlaces, query);
   const open = focused && term.length > 0;
   const done = () => {
     setQuery('');
@@ -367,9 +379,26 @@ function SearchPanel({
               ))}
             </>
           )}
+          {clubMatches.length > 0 && (
+            <>
+              <p className={s.resultsTitle}>{t('Club places')}</p>
+              {clubMatches.map((place) => (
+                <ListRow
+                  key={place.id}
+                  leading={<span className={cx(mapStyles.resultDot, mapStyles[`place_${place.category}`])} aria-hidden />}
+                  title={place.name}
+                  subtitle={clubPlaceSubtitle(place)}
+                  onClick={() => {
+                    onClubPlace(place);
+                    done();
+                  }}
+                />
+              ))}
+            </>
+          )}
           {debounced.length >= 3 && (
             <>
-              <p className={s.resultsTitle}>{t('Places')}</p>
+              <p className={s.resultsTitle}>{t('Map results')}</p>
               {places.isPending && <p className={s.resultsEmpty}>{t('Searching…')}</p>}
               {places.error && <p className={s.resultsEmpty}>{errorMessage(places.error)}</p>}
               {places.data?.items.length === 0 && <p className={s.resultsEmpty}>{t('No place found.')}</p>}
@@ -387,7 +416,9 @@ function SearchPanel({
               ))}
             </>
           )}
-          {matches.length === 0 && debounced.length < 3 && <p className={s.resultsEmpty}>{t('Keep typing…')}</p>}
+          {matches.length === 0 && clubMatches.length === 0 && debounced.length < 3 && (
+            <p className={s.resultsEmpty}>{t('Keep typing…')}</p>
+          )}
         </div>
       )}
     </>

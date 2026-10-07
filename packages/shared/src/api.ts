@@ -586,6 +586,8 @@ export type ClubPlaceUpdate = z.infer<typeof clubPlaceUpdateSchema>;
 export const redZoneSchema = z.object({
   id: idSchema,
   name: z.string(),
+  /** Why the zone exists (homes, a hospital…), shown to members. */
+  description: z.string().nullable(),
   lat: z.number(),
   lng: z.number(),
   /** Metres. */
@@ -596,6 +598,7 @@ export const redZoneListSchema = items(redZoneSchema);
 
 export const redZoneBodySchema = z.object({
   name: z.string().trim().min(2, 'Enter a name').max(80),
+  description: z.string().trim().max(500).nullable().optional(),
   lat: latSchema,
   lng: lngSchema,
   radius: z.number().int().min(RED_ZONE_RADIUS.min).max(RED_ZONE_RADIUS.max),

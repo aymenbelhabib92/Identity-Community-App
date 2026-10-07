@@ -43,6 +43,13 @@
       "when": 1791303549397,
       "tag": "0005_profile_bio_cover",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791378964031,
+      "tag": "0006_red_zone_description",
+      "breakpoints": true
     }
   ]
 }

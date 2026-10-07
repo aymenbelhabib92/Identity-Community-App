@@ -13,6 +13,7 @@ export function redZoneAt(zones: readonly RedZoneRow[], point: LatLng): RedZoneR
 export const toRedZoneDto = (zone: RedZoneRow): RedZone => ({
   id: zone.id,
   name: zone.name,
+  description: zone.description,
   lat: zone.lat,
   lng: zone.lng,
   radius: zone.radius,

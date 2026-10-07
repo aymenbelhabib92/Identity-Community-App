@@ -85,9 +85,10 @@ export const placeRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
+      const { description, ...zone } = request.body;
       const [row] = await app.db
         .insert(redZones)
-        .values({ ...request.body, createdById: request.viewer.id })
+        .values({ ...zone, description: description || null, createdById: request.viewer.id })
         .returning();
       reply.code(201);
       return toRedZoneDto(row!);
@@ -99,15 +100,17 @@ export const placeRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: ['admin'],
-        summary: 'Change a red zone (name, centre, radius)',
+        summary: 'Change a red zone (name, description, centre, radius)',
         params: idParamsSchema,
         body: redZoneUpdateSchema,
         response: { 200: redZoneSchema },
       },
     },
     async (request) => {
-      if (Object.keys(request.body).length === 0) throw badRequest('VALIDATION', 'Nothing to update');
-      const [row] = await app.db.update(redZones).set(request.body).where(eq(redZones.id, request.params.id)).returning();
+      const { description, ...changes } = request.body;
+      const values = { ...changes, ...(description !== undefined && { description: description || null }) };
+      if (Object.keys(values).length === 0) throw badRequest('VALIDATION', 'Nothing to update');
+      const [row] = await app.db.update(redZones).set(values).where(eq(redZones.id, request.params.id)).returning();
       if (!row) throw notFound('Red zone');
       return toRedZoneDto(row);
     },

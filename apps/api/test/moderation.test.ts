@@ -172,13 +172,18 @@ describe('places and red zones', () => {
     const before = (await call(admin, 'GET', '/map/members')).json<{ items: MapMember[] }>().items.map((m) => m.id);
     expect(before).toEqual(expect.arrayContaining([karim.id, leila.id]));
 
-    const created = await call(admin, 'POST', '/admin/zones', { name: 'Lac 2 residences', ...lake, radius: 300 });
+    const created = await call(admin, 'POST', '/admin/zones', {
+      name: 'Lac 2 residences',
+      description: 'Families live here: no stops, no revving.',
+      ...lake,
+      radius: 300,
+    });
     expect(created.statusCode).toBe(201);
     const zone = created.json<RedZone>();
-    // Visible to every member.
+    // Visible to every member, with why it exists.
     const { token: pending } = await register(t.app, 'Pending Zone Viewer');
     expect((await call(pending, 'GET', '/map/zones')).json<{ items: RedZone[] }>().items).toEqual([
-      expect.objectContaining({ name: 'Lac 2 residences', radius: 300 }),
+      expect.objectContaining({ name: 'Lac 2 residences', description: 'Families live here: no stops, no revving.', radius: 300 }),
     ]);
 
     // Karim, already shared inside the zone, disappears at once.
@@ -195,8 +200,9 @@ describe('places and red zones', () => {
     expect(outside).toMatchObject({ sharing: true, redZone: null });
     expect(outside.lat).not.toBeNull();
 
-    // Shrinking the zone frees Karim's position.
-    await call(admin, 'PATCH', `/admin/zones/${zone.id}`, { radius: 50 });
+    // Shrinking the zone frees Karim's position; an empty description removes it.
+    const shrunk = (await call(admin, 'PATCH', `/admin/zones/${zone.id}`, { radius: 50, description: '' })).json<RedZone>();
+    expect(shrunk).toMatchObject({ radius: 50, description: null });
     expect((await call(admin, 'GET', '/map/members')).json<{ items: MapMember[] }>().items.map((m) => m.id)).toContain(karim.id);
     expect((await call(admin, 'DELETE', `/admin/zones/${zone.id}`)).statusCode).toBe(200);
   });

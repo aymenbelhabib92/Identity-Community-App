@@ -307,6 +307,8 @@ export const FR: Record<string, string> = {
   'Red zone “{name}”: sharing is paused, the other members do not see you. It resumes when you leave.':
     'Zone rouge « {name} » : partage en pause, les autres membres ne vous voient pas. Il reprend à la sortie de la zone.',
   'Places & red zones': 'Lieux et zones rouges',
+  'Club places': 'Lieux du club',
+  'Map results': 'Résultats de la carte',
   'On the members’ map': 'Sur la carte des membres',
   '{places} places · {zones} red zones': '{places} lieux · {zones} zones rouges',
   'Tap the map to add a place or a red zone. Tap one to change or remove it.':
@@ -321,6 +323,7 @@ export const FR: Record<string, string> = {
   'e.g. Residential streets': 'ex. Quartier résidentiel',
   Category: 'Catégorie',
   'Description (optional): opening hours, discount for members…': 'Description (facultatif) : horaires, remise pour les membres…',
+  'Description (optional): why this zone, what to do there…': 'Description (facultatif) : pourquoi cette zone, comment s’y comporter…',
   Radius: 'Rayon',
   'Members inside are hidden from the map, and see a red alert while there. Every member sees the zone.':
     "Les membres à l'intérieur sont masqués sur la carte et voient une alerte rouge tant qu'ils y sont. Tous les membres voient la zone.",

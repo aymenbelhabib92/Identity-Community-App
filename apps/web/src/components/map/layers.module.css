@@ -31,6 +31,13 @@
   white-space: pre-line;
 }
 
+/* What the admins wrote about a red zone. */
+.description {
+  font-size: 16px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
 .spot {
   background: rgba(191, 90, 242, 0.18);
   color: var(--purple);

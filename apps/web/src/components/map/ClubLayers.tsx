@@ -92,6 +92,7 @@ export function RedZoneSheet({ zone, onClose }: { zone: RedZone | null; onClose:
             <ShieldAlert aria-hidden />
             {t('Red zone')}
           </p>
+          {zone.description && <p className={sheet.description}>{zone.description}</p>}
           <p className={sheet.text}>
             {t('Members are never shown on the map within {meters} m of this place, so that nobody can be found there.', {
               meters: zone.radius,

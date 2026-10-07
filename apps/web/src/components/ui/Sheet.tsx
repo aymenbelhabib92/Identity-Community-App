@@ -17,6 +17,11 @@ export function Sheet({
   children: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  // Read through a ref: a new `onClose` at every render (an inline function) must not
+  // run the effect below again, which would take the focus (and the phone keyboard)
+  // away from the field being typed in.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -25,7 +30,7 @@ export function Sheet({
     document.body.style.overflow = 'hidden';
     panel.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', onKey);
     return () => {
@@ -33,7 +38,7 @@ export function Sheet({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

@@ -387,8 +387,22 @@ await db.insert(clubPlaces).values([
 
 // Leila shares her position from inside the first zone: she does not appear on the map.
 await db.insert(redZones).values([
-  { name: 'Carthage — residential streets', lat: 36.8528, lng: 10.3233, radius: 500, createdById: id.mehdi! },
-  { name: 'Charles Nicolle hospital', lat: 36.8027, lng: 10.1615, radius: 250, createdById: id.mehdi! },
+  {
+    name: 'Carthage — residential streets',
+    description: 'Families and the presidential area: no stops, no revving, no photos.',
+    lat: 36.8528,
+    lng: 10.3233,
+    radius: 500,
+    createdById: id.mehdi!,
+  },
+  {
+    name: 'Charles Nicolle hospital',
+    description: 'Ambulances day and night: drive through quietly.',
+    lat: 36.8027,
+    lng: 10.1615,
+    radius: 250,
+    createdById: id.mehdi!,
+  },
 ]);
 
 const banEnds = hoursAgo(-48);

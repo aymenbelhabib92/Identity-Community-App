@@ -232,6 +232,25 @@
   background: var(--surface);
 }
 
+.resultsTitle {
+  padding: 10px 14px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* A club place in the results, coloured like its marker. */
+.resultDot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
 .result {
   position: relative;
   display: block;

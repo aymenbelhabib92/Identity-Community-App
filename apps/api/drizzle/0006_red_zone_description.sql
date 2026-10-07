@@ -1,0 +1,1 @@
+ALTER TABLE "red_zones" ADD COLUMN "description" text;

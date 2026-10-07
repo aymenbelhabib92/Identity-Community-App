@@ -39,6 +39,7 @@ import { useCan } from '../../lib/auth';
 import { cx } from '../../lib/cx';
 import { errorMessage, fieldErrors } from '../../lib/errors';
 import { useDebounced } from '../../lib/hooks';
+import { clubPlaceSubtitle, matchClubPlaces } from '../../lib/places';
 import { keys, useMapPlaces, useMapZones } from '../../lib/queries';
 import mapScreen from '../map/map-screen.module.css';
 import s from './admin-places.module.css';
@@ -125,7 +126,14 @@ export default function AdminPlaces() {
           <Link to="/admin" className={s.back} aria-label={t('Admin')}>
             <ChevronLeft aria-hidden strokeWidth={2.4} />
           </Link>
-          <PlaceSearch onFound={(point) => map?.flyTo([point.lat, point.lng], 16, { duration: 0.7 })} />
+          <PlaceSearch
+            clubPlaces={placeList}
+            onFound={(point) => map?.flyTo([point.lat, point.lng], 16, { duration: 0.7 })}
+            onClubPlace={(place) => {
+              map?.flyTo([place.lat, place.lng], 16, { duration: 0.7 });
+              setEditing({ kind: 'place', place });
+            }}
+          />
         </div>
       </div>
 
@@ -154,7 +162,15 @@ export default function AdminPlaces() {
 const editorKey = (editing: Editing | null) =>
   !editing ? 'none' : editing.kind === 'new' ? `new:${editing.point.lat},${editing.point.lng}` : `${editing.kind}:${editing.kind === 'place' ? editing.place.id : editing.zone.id}`;
 
-function PlaceSearch({ onFound }: { onFound: (point: LatLng) => void }) {
+function PlaceSearch({
+  clubPlaces,
+  onFound,
+  onClubPlace,
+}: {
+  clubPlaces: ClubPlace[];
+  onFound: (point: LatLng) => void;
+  onClubPlace: (place: ClubPlace) => void;
+}) {
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query.trim());
   const results = useQuery({
@@ -163,6 +179,7 @@ function PlaceSearch({ onFound }: { onFound: (point: LatLng) => void }) {
     enabled: debounced.length >= 3,
     staleTime: 10 * 60_000,
   });
+  const clubMatches = matchClubPlaces(clubPlaces, query);
   return (
     <div className={s.searchBox}>
       <label className={mapScreen.search}>
@@ -180,9 +197,23 @@ function PlaceSearch({ onFound }: { onFound: (point: LatLng) => void }) {
           </button>
         )}
       </label>
-      {query && debounced.length >= 3 && (
+      {query.trim() && (clubMatches.length > 0 || debounced.length >= 3) && (
         <div className={cx(mapScreen.results, s.results)}>
-          {results.isPending && <p className={mapScreen.resultsEmpty}>{t('Searching…')}</p>}
+          {clubMatches.length > 0 && <p className={mapScreen.resultsTitle}>{t('Club places')}</p>}
+          {clubMatches.map((place) => (
+            <ListRow
+              key={place.id}
+              leading={<span className={cx(mapStyles.resultDot, mapStyles[`place_${place.category}`])} aria-hidden />}
+              title={place.name}
+              subtitle={clubPlaceSubtitle(place)}
+              onClick={() => {
+                onClubPlace(place);
+                setQuery('');
+              }}
+            />
+          ))}
+          {debounced.length >= 3 && <p className={mapScreen.resultsTitle}>{t('Map results')}</p>}
+          {debounced.length >= 3 && results.isPending && <p className={mapScreen.resultsEmpty}>{t('Searching…')}</p>}
           {results.error && <p className={mapScreen.resultsEmpty}>{errorMessage(results.error)}</p>}
           {results.data?.items.length === 0 && <p className={mapScreen.resultsEmpty}>{t('No place found.')}</p>}
           {results.data?.items.map((place) => (
@@ -223,7 +254,7 @@ function EditorSheet({
   const [kind, setKind] = useState<Kind>(existingZone ? 'zone' : 'place');
   const [name, setName] = useState(existingPlace?.name ?? existingZone?.name ?? '');
   const [category, setCategory] = useState<ClubPlaceCategory>(existingPlace?.category ?? 'spot');
-  const [description, setDescription] = useState(existingPlace?.description ?? '');
+  const [description, setDescription] = useState(existingPlace?.description ?? existingZone?.description ?? '');
   const [radius, setRadius] = useState<number>(existingZone?.radius ?? RED_ZONE_RADIUS.default);
 
   const showPreview = (nextKind: Kind, nextRadius: number) =>
@@ -241,14 +272,15 @@ function EditorSheet({
   const save = useMutation({
     mutationFn: async () => {
       if (!point) return;
+      const text = description.trim() || null;
       if (kind === 'place') {
-        const body = { name, category, description: description.trim() || null };
+        const body = { name, category, description: text };
         if (existingPlace) await api.admin.updatePlace(existingPlace.id, body);
         else await api.admin.createPlace({ ...body, lat: point.lat, lng: point.lng });
       } else if (existingZone) {
-        await api.admin.updateZone(existingZone.id, { name, radius });
+        await api.admin.updateZone(existingZone.id, { name, description: text, radius });
       } else {
-        await api.admin.createZone({ name, radius, lat: point.lat, lng: point.lng });
+        await api.admin.createZone({ name, description: text, radius, lat: point.lat, lng: point.lng });
       }
     },
     onSuccess: () => done(kind === 'place' ? t('Place saved') : t('Red zone saved')),
@@ -348,6 +380,13 @@ function EditorSheet({
                 }}
               />
             </label>
+            <TextArea
+              value={description}
+              maxLength={500}
+              placeholder={t('Description (optional): why this zone, what to do there…')}
+              onChange={(event) => setDescription(event.target.value)}
+              aria-label={t('Description')}
+            />
             <p className={s.zoneText}>
               <ShieldAlert aria-hidden />
               {t('Members inside are hidden from the map, and see a red alert while there. Every member sees the zone.')}

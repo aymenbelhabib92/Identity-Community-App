@@ -137,6 +137,8 @@ export const clubPlaces = pgTable('club_places', {
 export const redZones = pgTable('red_zones', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
+  /** Why the zone exists, shown to members. */
+  description: text('description'),
   lat: doublePrecision('lat').notNull(),
   lng: doublePrecision('lng').notNull(),
   /** Metres. */
